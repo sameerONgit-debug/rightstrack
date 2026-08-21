@@ -1,6 +1,6 @@
 # RightsTrack
 
-[![CI Build & Sanity Check](https://github.com/rightstrack/rightstrack/actions/workflows/ci.yml/badge.svg)](https://github.com/rightstrack/rightstrack/actions/workflows/ci.yml)
+[![CI Build & Sanity Check](https://github.com/adityasharma7987002564-debug/rightstrack/actions/workflows/ci.yml/badge.svg)](https://github.com/adityasharma7987002564-debug/rightstrack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Framework](https://img.shields.io/badge/Framework-Next.js%2014%20(App%20Router)-black)](https://nextjs.org/)
 [![Database](https://img.shields.io/badge/Database-Supabase%20pgvector-emerald)](https://supabase.com/)
@@ -138,7 +138,7 @@ flowchart TD
 
 ```bash
 # Clone the repository
-git clone https://github.com/rightstrack/rightstrack.git
+git clone https://github.com/adityasharma7987002564-debug/rightstrack.git
 cd rightstrack
 
 # Install project dependencies
