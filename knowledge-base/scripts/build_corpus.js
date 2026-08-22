@@ -16,7 +16,7 @@ function normalizeChunk(raw, domain, index) {
     jurisdiction: raw.jurisdiction || 'Central',
     document_type: raw.document_type || 'statute',
     source_authority: raw.source_authority || 'India Code',
-    source_url: raw.source_url || (domain === 'RTI' ? 'https://www.indiacode.nic.in/handle/123456789/17520' : 'https://www.indiacode.nic.in/handle/123456789/17942'),
+    source_url: raw.source_url || (domain === 'RTI' ? 'https://www.indiacode.nic.in/handle/123456789/17520' : 'https://www.indiacode.nic.in/handle/123456789/15256'),
     effective_date: raw.effective_date || (domain === 'RTI' ? '2005-10-12' : '2020-07-24'),
     last_verified_date: new Date().toISOString().slice(0, 10),
     domain_tag: domain,
@@ -30,7 +30,9 @@ async function buildCorpus() {
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
     data.forEach((raw, index) => chunks.push(normalizeChunk(raw, domain, index)));
   }
-  if (!process.env.VOYAGE_API_KEY) throw new Error('VOYAGE_API_KEY is required.');
+  const required = ['VOYAGE_API_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+  const missing = required.filter((name) => !process.env[name]);
+  if (missing.length) throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   const embeddings = await embedBatch(chunks.map(c => `${c.act_name}\n${c.section_number}\n${c.section_title}\n${c.full_text}`));
   const rows = chunks.map((chunk, i) => ({ ...chunk, embedding: embeddings[i]?.embedding || embeddings[i] }));
   const { error } = await supabaseAdmin.from('statutory_chunks').upsert(rows, { onConflict: 'chunk_id' });
