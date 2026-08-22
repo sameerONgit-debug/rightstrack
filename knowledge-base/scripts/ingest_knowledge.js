@@ -1,3 +1,5 @@
+require('dotenv').config({ path: '.env.local' });
+
 /**
  * Knowledge Base Ingestion Script
  * Loads statutory sections into Supabase pgvector with Voyage AI legal embeddings.
