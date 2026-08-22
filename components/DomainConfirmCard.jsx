@@ -3,9 +3,10 @@
 export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeCategory }) {
   const { domain, confidence, rationale } = analysisResult || {};
 
-  const isRTI = domain === 'RTI';
-  const isConsumer = domain === 'Consumer';
-  const isUnsupported = domain === 'Unsupported';
+  const normalizedDomain = String(domain || '').toUpperCase();
+  const isRTI = normalizedDomain === 'RTI';
+  const isConsumer = normalizedDomain === 'CONSUMER';
+  const isUnsupported = normalizedDomain === 'UNSUPPORTED';
 
   const domainTitle = isRTI
     ? 'RTI — Right to Information'

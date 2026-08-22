@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DisclaimerBanner from '@/components/DisclaimerBanner';
@@ -8,7 +9,15 @@ import DocumentViewer from '@/components/DocumentViewer';
 export default function DocumentPage({ params }) {
   const router = useRouter();
   const caseId = params?.caseId || 'case_rti_001';
-  const isConsumer = caseId.includes('consumer');
+  const [caseData, setCaseData] = useState(null);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('current_case');
+    if (stored) setCaseData(JSON.parse(stored));
+  }, []);
+
+  const domain = caseData?.analysis?.domain || caseData?.document?.domain || caseData?.domain || 'RTI';
+  const documentData = caseData?.document || caseData;
 
   const handleProceedToFile = () => {
     router.push(`/file/${caseId}`);
@@ -43,7 +52,8 @@ export default function DocumentPage({ params }) {
       <main className="max-w-6xl mx-auto px-6 py-8 flex-1 w-full">
         <DocumentViewer
           caseId={caseId}
-          domain={isConsumer ? 'Consumer' : 'RTI'}
+          domain={domain}
+          documentData={documentData}
           grounded={true}
           onProceedToFile={handleProceedToFile}
         />

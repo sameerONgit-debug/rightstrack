@@ -5,38 +5,50 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ClarifyingQuestionWizard from '@/components/ClarifyingQuestionWizard';
 import LoadingState from '@/components/LoadingState';
-import { mockAnalyzeRTI } from '@/lib/mockData';
+import ErrorState from '@/components/ErrorState';
+import { apiFetch } from '@/lib/apiClient';
 
 export default function QuestionsPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('current_analysis');
     if (stored) {
       const parsed = JSON.parse(stored);
       setAnalysisResult(parsed);
-      setQuestions(parsed.clarifying_questions || mockAnalyzeRTI.clarifying_questions);
+      const storedQuestions = parsed.clarifying_questions?.length
+        ? parsed.clarifying_questions
+        : (parsed.questions || []).map((question) => ({
+            field_key: question.key,
+            question_text: question.text,
+            input_type: 'text',
+          }));
+      setQuestions(storedQuestions);
     } else {
-      setQuestions(mockAnalyzeRTI.clarifying_questions);
+      setError('Your analysis session has expired. Please start a new intake.');
     }
   }, []);
 
   const handleWizardComplete = async (collectedAnswers) => {
     setIsGenerating(true);
+    setError(null);
 
     try {
-      // Simulate POST /api/cases generation (3s perceived latency as required by spec)
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-
-      const domain = analysisResult?.domain || 'RTI';
-      const caseId = domain === 'Consumer' ? 'case_consumer_001' : 'case_rti_001';
+      const { data, error: apiError } = await apiFetch('/api/cases', {
+        method: 'POST',
+        body: JSON.stringify({ analysis: analysisResult, answers: collectedAnswers }),
+      });
+      if (apiError) throw new Error(apiError.message);
 
       sessionStorage.setItem('collected_fields', JSON.stringify(collectedAnswers));
-      router.push(`/document/${caseId}`);
+      sessionStorage.setItem('current_case', JSON.stringify(data));
+      router.push(`/document/${data.caseId}`);
     } catch (err) {
+      setError(err.message || 'We could not draft your document. Please try again.');
       setIsGenerating(false);
     }
   };
@@ -55,7 +67,9 @@ export default function QuestionsPage() {
 
       {/* Main Content Card */}
       <main className="w-full max-w-2xl bg-surface rounded-[20px] shadow-[0_4px_25px_rgba(27,67,50,0.08)] p-8 md:p-10 flex flex-col gap-6 mt-12 border border-white/60">
-        {isGenerating ? (
+        {error ? (
+          <ErrorState message={error} onRetry={() => setError(null)} />
+        ) : isGenerating ? (
           <LoadingState message="Retrieving relevant law… Drafting your application…" />
         ) : (
           <ClarifyingQuestionWizard

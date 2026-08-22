@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import IntakeForm from '@/components/IntakeForm';
 import ErrorState from '@/components/ErrorState';
-import { mockAnalyzeRTI, mockAnalyzeConsumer, mockAnalyzeUnsupported } from '@/lib/mockData';
+import { apiFetch } from '@/lib/apiClient';
 
 export default function IntakePage() {
   const router = useRouter();
@@ -17,24 +17,13 @@ export default function IntakePage() {
     setError(null);
 
     try {
-      // Simulate API call to POST /api/analyze with 1.5s reassuring delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const { data, error: apiError } = await apiFetch('/api/analyze', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: inputText }),
+      });
+      if (apiError) throw new Error(apiError.message);
 
-      let result;
-      const lower = inputText.toLowerCase();
-      if (lower.includes('pm-kisan') || lower.includes('subsidy') || lower.includes('rti') || lower.includes('block office')) {
-        result = { ...mockAnalyzeRTI, text: inputText };
-      } else if (lower.includes('cooker') || lower.includes('refund') || lower.includes('seller') || lower.includes('bought')) {
-        result = { ...mockAnalyzeConsumer, text: inputText };
-      } else if (lower.includes('landlord') || lower.includes('evict') || lower.includes('tenant')) {
-        result = { ...mockAnalyzeUnsupported, text: inputText };
-      } else {
-        // Default to RTI for general queries
-        result = { ...mockAnalyzeRTI, text: inputText };
-      }
-
-      // Save to sessionStorage for wizard state management
-      sessionStorage.setItem('current_analysis', JSON.stringify(result));
+      sessionStorage.setItem('current_analysis', JSON.stringify(data));
       router.push('/confirm');
     } catch (err) {
       setError("We couldn't process that — try rephrasing, or describe just the core issue in one sentence.");

@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import CitationChip from './CitationChip';
 
-export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true, onProceedToFile }) {
+export default function DocumentViewer({ caseId, domain = 'RTI', documentData, grounded = true, onProceedToFile }) {
   const [selectedCitation, setSelectedCitation] = useState(null);
+  const [copyLabel, setCopyLabel] = useState('Copy');
 
   const isRTI = domain === 'RTI';
 
-  const citations = isRTI
+  const fallbackCitations = isRTI
     ? [
         {
           id: 1,
@@ -40,13 +40,43 @@ export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true
           excerpt: '"Defect" means any fault, imperfection or shortcoming in the quality, quantity, potency, purity or standard which is required to be maintained by or under any law for the time being in force...',
           verifiedDate: 'Aug 2026',
         },
-      ];
+        ];
+      const citations = documentData?.legal_citations?.length ? documentData.legal_citations : fallbackCitations;
+      const draft = documentData?.draft;
+      const documentText = draft || [
+        isRTI ? 'Application for Information under Section 6(1) of the RTI Act, 2005' : 'Consumer Complaint before the District Consumer Disputes Redressal Commission',
+        'To: Public Information Officer / District Commission',
+        isRTI ? 'The Applicant hereby submits this application seeking official disclosure and resolution regarding the situation described during intake.' : 'The complainant purchased a defective product online and the seller refused to process a refund or replacement.',
+      ].join('\n\n');
+
+      const handleCopy = async () => {
+        try {
+          await navigator.clipboard.writeText(documentText);
+          setCopyLabel('Copied! ✓');
+          window.setTimeout(() => setCopyLabel('Copy'), 2000);
+        } catch {
+          setCopyLabel('Copy failed');
+          window.setTimeout(() => setCopyLabel('Copy'), 2000);
+        }
+      };
+
+      const handleDownloadTxt = () => {
+        const blob = new Blob([documentText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${caseId}-legal-document.txt`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+    <div className="document-viewer grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
       {/* Left Column: Document Canvas (60%) */}
       <section className="lg:col-span-7 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="document-toolbar flex items-center justify-between">
           <div className="flex items-center gap-2">
             {grounded ? (
               <span className="inline-flex items-center bg-secondary-container text-primary px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
@@ -63,17 +93,18 @@ export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true
             <span className="text-on-surface-variant text-xs font-mono">Case ID: {caseId}</span>
           </div>
 
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">print</span>
-            Print
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={handleCopy} className="text-xs text-on-surface-variant hover:text-primary transition-colors">{copyLabel}</button>
+            <button onClick={handleDownloadTxt} className="text-xs text-on-surface-variant hover:text-primary transition-colors">Download .TXT</button>
+            <button onClick={() => window.print()} className="flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors">
+              <span className="material-symbols-outlined text-[16px]">print</span>
+              Print / Download PDF
+            </button>
+          </div>
         </div>
 
         {/* Document Card */}
-        <article className="bg-surface rounded-2xl shadow-[0_4px_25px_rgba(27,67,50,0.08)] p-6 md:p-8 relative border border-outline-variant/30 text-on-surface leading-relaxed text-sm md:text-base space-y-6">
+        <article className="document-canvas bg-surface rounded-2xl shadow-[0_4px_25px_rgba(27,67,50,0.08)] p-6 md:p-8 relative border border-outline-variant/30 text-on-surface leading-relaxed text-sm md:text-base space-y-6">
           <div className="border-b border-outline-variant/20 pb-4">
             <h2 className="font-serif text-2xl font-bold text-primary">
               {isRTI
@@ -85,29 +116,18 @@ export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true
 
           <div>
             <h3 className="font-serif font-bold text-lg text-primary mb-2">1. Applicant Details & Subject Matter</h3>
-            <p>
-              The Applicant hereby submits this application seeking official disclosure and resolution regarding non-disbursement of entitlement benefits under statutory provisions{' '}
-              <CitationChip index={1} isSelected={selectedCitation === 1} onClick={() => setSelectedCitation(selectedCitation === 1 ? null : 1)} />.
-            </p>
+            <p>{draft || 'The Applicant hereby submits this application seeking official disclosure and resolution regarding the situation described during intake.'}</p>
           </div>
 
           <div>
             <h3 className="font-serif font-bold text-lg text-primary mb-2">2. Statement of Facts</h3>
-            <p>
-              {isRTI
-                ? 'The applicant is a registered beneficiary of the PM-KISAN scheme. Despite multiple inquiries at the Block Development Office, the quarterly installment payments have been withheld for 3 consecutive months without written explanation.'
-                : 'The complainant purchased a Pressure Cooker for ₹2,400 online. Upon delivery, the product lid was cracked and defective. The seller has explicitly refused to process a refund or replacement.'}
-              {' '}
-              <CitationChip index={2} isSelected={selectedCitation === 2} onClick={() => setSelectedCitation(selectedCitation === 2 ? null : 2)} />.
-            </p>
+            <p>{draft ? 'This draft was generated from your intake and answers, with the cited provisions shown alongside it.' : isRTI ? 'The applicant is a registered beneficiary of the PM-KISAN scheme. Despite multiple inquiries at the Block Development Office, the quarterly installment payments have been withheld without written explanation.' : 'The complainant purchased a defective product online and the seller refused to process a refund or replacement.'}</p>
           </div>
 
           <div>
             <h3 className="font-serif font-bold text-lg text-primary mb-2">3. Relief & Mandatory Statutory Response</h3>
             <p>
-              {isRTI
-                ? 'Information requested must be provided within the mandatory 30-day period as stipulated under statutory law.'
-                : 'The complainant seeks full refund of ₹2,400 along with appropriate compensation for defective goods and service deficiency.'}
+              {draft ? 'The requested relief and statutory response should be reviewed against the cited provisions before filing.' : isRTI ? 'Information requested must be provided within the mandatory 30-day period as stipulated under statutory law.' : 'The complainant seeks full refund along with appropriate compensation for defective goods and service deficiency.'}
             </p>
           </div>
 
@@ -122,7 +142,13 @@ export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true
 
         {/* Action Button */}
         {onProceedToFile && (
-          <div className="flex justify-end pt-2">
+          <div className="document-actions flex flex-wrap justify-end gap-3 pt-2">
+            <a
+              href={`/case/${caseId}`}
+              className="bg-primary text-on-primary font-semibold text-sm px-8 py-3.5 rounded-xl shadow-sm hover:bg-primary-container transition-all flex items-center gap-2"
+            >
+              <span>Track & Monitor Case Timeline →</span>
+            </a>
             <button
               onClick={onProceedToFile}
               className="bg-primary text-on-primary font-semibold text-sm px-8 py-3.5 rounded-xl shadow-sm hover:bg-primary-container transition-all flex items-center gap-2"
@@ -135,7 +161,7 @@ export default function DocumentViewer({ caseId, domain = 'RTI', grounded = true
       </section>
 
       {/* Right Column: Sources Panel (40%) */}
-      <section className="lg:col-span-5 flex flex-col gap-4">
+      <section className="document-sources lg:col-span-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="font-serif text-xl font-bold text-primary flex items-center gap-2">
             <span className="material-symbols-outlined">library_books</span>

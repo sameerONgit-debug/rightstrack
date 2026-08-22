@@ -9,6 +9,9 @@ export default function EscalatePage({ params }) {
   const router = useRouter();
   const caseId = params?.caseId || 'case_rti_002';
   const [isFiled, setIsFiled] = useState(false);
+  const originalFilingDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+  const filingDateText = originalFilingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const appealDateText = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const handleMarkFiled = () => {
     setIsFiled(true);
@@ -47,7 +50,7 @@ export default function EscalatePage({ params }) {
               <h1 className="font-serif text-2xl font-bold text-primary">Auto-Drafted First Appeal</h1>
             </div>
             <p className="text-xs text-on-secondary-container mt-0.5">
-              This appeal directly references original Case <span className="font-mono font-bold">#{caseId}</span>, filed Aug 12, 2026 (30-day limit elapsed).
+              This appeal directly references original Case <span className="font-mono font-bold">#{caseId}</span>, filed {filingDateText} (30-day limit elapsed).
             </p>
           </div>
 
@@ -74,7 +77,7 @@ export default function EscalatePage({ params }) {
               FIRST APPEAL UNDER SECTION 19(1) OF THE RIGHT TO INFORMATION ACT, 2005
             </h2>
             <div className="flex items-center gap-4 text-xs text-on-surface-variant font-mono">
-              <span>Date: Aug 23, 2026</span>
+              <span>Date: {appealDateText}</span>
               <span>Target: First Appellate Authority (FAA)</span>
             </div>
           </header>
@@ -89,7 +92,7 @@ export default function EscalatePage({ params }) {
             <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20 space-y-2 text-xs md:text-sm">
               <h3 className="font-bold text-primary">1. Chronology of Deemed Refusal</h3>
               <p>
-                The Appellant submitted an RTI application under Section 6(1) on Aug 12, 2026 seeking details regarding non-disbursement of PM-KISAN subsidy installments. Pursuant to Section 7(1), the mandatory 30-day response window expired without any communication or decision from the PIO.
+                The Appellant submitted an RTI application under Section 6(1) on {filingDateText} seeking details regarding non-disbursement of PM-KISAN subsidy installments. Pursuant to Section 7(1), the mandatory 30-day response window expired without any communication or decision from the PIO.
               </p>
               <span className="inline-flex items-center gap-1 bg-secondary-container text-primary px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-1">
                 <span className="material-symbols-outlined text-[13px]">check_circle</span> Grounded ✓ S.19(1) RTI Act
@@ -124,7 +127,7 @@ export default function EscalatePage({ params }) {
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
                 <span className="font-bold text-primary block mb-1">Original RTI Application #6(1)</span>
-                <p className="text-on-surface-variant">Submitted Aug 12, 2026 to Block Development Office.</p>
+                <p className="text-on-surface-variant">Submitted {filingDateText} to Block Development Office.</p>
               </div>
 
               <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">

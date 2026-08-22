@@ -8,7 +8,9 @@ import CaseTimeline from '@/components/CaseTimeline';
 export default function CaseDetailPage({ params }) {
   const router = useRouter();
   const caseId = params?.caseId || 'case_rti_001';
-  const isOverdue = caseId === 'case_rti_002'; // Pre-seeded overdue case for Scenario 1 demo
+  const filedDate = '2026-07-23';
+  const isExpired = Date.now() >= new Date(filedDate).getTime() + (30 * 24 * 60 * 60 * 1000);
+  const filingDateText = new Date(`${filedDate}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const handleEscalate = () => {
     router.push(`/escalate/${caseId}`);
@@ -40,15 +42,15 @@ export default function CaseDetailPage({ params }) {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-              isOverdue ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-secondary-container/60 text-primary'
+              isExpired ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-secondary-container/60 text-primary'
             }`}>
-              {isOverdue ? 'Response Overdue — Escalate Now' : 'Tracked & Active'}
+              {isExpired ? 'Response Overdue — Escalate Now' : 'Tracked & Active'}
             </span>
             <span className="text-xs font-mono text-on-surface-variant">ID: {caseId}</span>
           </div>
 
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-primary">
-            {isOverdue ? 'PM-KISAN Pending Installment - Overdue Appeal' : 'PM-KISAN Farmer Subsidy Non-Payment Inquiry'}
+            {isExpired ? 'PM-KISAN Pending Installment - Overdue Appeal' : 'PM-KISAN Farmer Subsidy Non-Payment Inquiry'}
           </h1>
         </div>
 
@@ -57,7 +59,7 @@ export default function CaseDetailPage({ params }) {
           {/* Main Timeline (8 Cols) */}
           <div className="lg:col-span-8 bg-surface rounded-2xl p-6 md:p-8 shadow-xs border border-outline-variant/30">
             <h2 className="font-serif text-2xl font-bold text-primary mb-6">Case Timeline</h2>
-            <CaseTimeline caseId={caseId} isOverdue={isOverdue} />
+            <CaseTimeline caseId={caseId} filedDate={filedDate} isExpired={isExpired} />
           </div>
 
           {/* Sidebar Actions & Details (4 Cols) */}
@@ -66,29 +68,25 @@ export default function CaseDetailPage({ params }) {
             <div className="bg-surface p-6 rounded-2xl border border-outline-variant/30 shadow-xs space-y-4">
               <h3 className="font-serif text-xl font-bold text-primary">Actions</h3>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                {isOverdue
-                  ? 'The mandatory 30-day statutory response deadline has elapsed with no reply from the Public Information Officer.'
+                {isExpired
+                  ? '30-day statutory deadline elapsed. Appeal filing now available.'
                   : 'Expedited appeal filing becomes available automatically if the 30-day statutory deadline passes without a reply.'}
               </p>
 
               <button
                 onClick={handleEscalate}
-                disabled={!isOverdue}
+                disabled={!isExpired}
                 className={`w-full py-3.5 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                  isOverdue
+                  isExpired
                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm cursor-pointer'
                     : 'bg-surface-container-high text-on-surface-variant/40 cursor-not-allowed border border-outline-variant/20'
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">gavel</span>
-                <span>{isOverdue ? 'Auto-Draft Appeal Now' : 'Escalate (Locked)'}</span>
+                <span>{isExpired ? 'Escalate / File First Appeal →' : 'Escalate (Locked)'}</span>
               </button>
 
-              {!isOverdue && (
-                <p className="text-[11px] text-center text-on-surface-variant">
-                  Escalation unlocks automatically after Sep 11, 2026
-                </p>
-              )}
+              {!isExpired && <p className="text-[11px] text-center text-on-surface-variant">30-day statutory deadline has not elapsed.</p>}
             </div>
 
             {/* Summary Details Card */}
@@ -98,6 +96,10 @@ export default function CaseDetailPage({ params }) {
                 <div className="flex justify-between border-b border-outline-variant/20 pb-2">
                   <span className="text-on-surface-variant">Domain</span>
                   <span className="font-semibold text-primary">RTI (Right to Information)</span>
+                </div>
+                <div className="flex justify-between border-b border-outline-variant/20 pb-2">
+                  <span className="text-on-surface-variant">Original Filing Date</span>
+                  <span className="font-semibold text-primary">{filingDateText}</span>
                 </div>
                 <div className="flex justify-between border-b border-outline-variant/20 pb-2">
                   <span className="text-on-surface-variant">Target Authority</span>
