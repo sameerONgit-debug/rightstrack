@@ -8,7 +8,7 @@ export async function POST(request) {
       return Response.json({ error: { code: 'INVALID_INPUT', message: 'A situation prompt is required.' } }, { status: 400 });
     }
 
-    return Response.json(await analyzePrompt(prompt));
+    return Response.json(await analyzePrompt(prompt, body?.language === 'hi' ? 'hi' : 'en'));
   } catch (error) {
     console.error('POST /api/analyze error:', error);
     return Response.json(fallbackAnalysis(), { status: 200 });

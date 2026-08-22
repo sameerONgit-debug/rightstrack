@@ -2,12 +2,12 @@ import { draftCase } from '@/lib/serverAi';
 
 export async function POST(request) {
   try {
-    const { analysis, answers } = await request.json();
+    const { analysis, answers, language } = await request.json();
     if (!analysis || !answers) {
       return Response.json({ error: { code: 'INVALID_INPUT', message: 'Analysis and answers are required.' } }, { status: 400 });
     }
 
-    const document = await draftCase({ analysis, answers });
+    const document = await draftCase({ analysis, answers, language: language === 'hi' ? 'hi' : 'en' });
     const caseId = `case_${Date.now()}`;
     const citations = document.citations || document.legal_citations || analysis.citations || analysis.legal_citations || [];
     return Response.json({

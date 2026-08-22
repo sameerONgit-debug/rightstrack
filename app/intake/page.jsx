@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import IntakeForm from '@/components/IntakeForm';
@@ -11,6 +11,29 @@ export default function IntakePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedLang, setSelectedLang] = useState('en');
+  const [phoneticHindi, setPhoneticHindi] = useState(false);
+
+  useEffect(() => {
+    setSelectedLang(localStorage.getItem('selected_language') || 'en');
+    setPhoneticHindi(localStorage.getItem('phonetic_hindi') === 'true');
+  }, []);
+
+  const handleLanguageChange = (event) => {
+    const language = event.target.value;
+    setSelectedLang(language);
+    localStorage.setItem('selected_language', language);
+  };
+
+  const handlePhoneticToggle = (event) => {
+    const enabled = event.target.checked;
+    setPhoneticHindi(enabled);
+    localStorage.setItem('phonetic_hindi', String(enabled));
+    if (enabled) {
+      setSelectedLang('hi');
+      localStorage.setItem('selected_language', 'hi');
+    }
+  };
 
   const handleAnalyze = async (inputText) => {
     setIsLoading(true);
@@ -19,11 +42,11 @@ export default function IntakePage() {
     try {
       const { data, error: apiError } = await apiFetch('/api/analyze', {
         method: 'POST',
-        body: JSON.stringify({ prompt: inputText }),
+        body: JSON.stringify({ prompt: inputText, language: selectedLang }),
       });
       if (apiError) throw new Error(apiError.message);
 
-      sessionStorage.setItem('current_analysis', JSON.stringify(data));
+      sessionStorage.setItem('current_analysis', JSON.stringify({ ...data, language: selectedLang }));
       router.push('/confirm');
     } catch (err) {
       setError("We couldn't process that — try rephrasing, or describe just the core issue in one sentence.");
@@ -41,6 +64,21 @@ export default function IntakePage() {
           </div>
           <span className="font-serif text-2xl text-primary font-bold tracking-tight">RightsTrack</span>
         </Link>
+        <div className="flex items-center gap-3">
+          <select
+            aria-label="Language"
+            value={selectedLang}
+            onChange={handleLanguageChange}
+            className="rounded-lg border border-outline-variant/30 bg-surface px-3 py-2 text-sm text-primary shadow-sm"
+          >
+            <option value="en">English</option>
+            <option value="hi">हिन्दी / Hindi</option>
+          </select>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-primary">
+            <input type="checkbox" checked={phoneticHindi} onChange={handlePhoneticToggle} className="h-4 w-4 accent-primary" />
+            Type in Hindi (Phonetic / Hinglish to हिन्दी)
+          </label>
+        </div>
       </header>
 
       {/* Main Content Card */}
@@ -67,7 +105,7 @@ export default function IntakePage() {
         {error ? (
           <ErrorState message={error} onRetry={() => setError(null)} />
         ) : (
-          <IntakeForm onSubmit={handleAnalyze} isLoading={isLoading} />
+          <IntakeForm onSubmit={handleAnalyze} isLoading={isLoading} language={selectedLang} phoneticHindi={phoneticHindi} />
         )}
       </main>
     </div>

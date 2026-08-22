@@ -40,7 +40,7 @@ export default function QuestionsPage() {
     try {
       const { data, error: apiError } = await apiFetch('/api/cases', {
         method: 'POST',
-        body: JSON.stringify({ analysis: analysisResult, answers: collectedAnswers }),
+        body: JSON.stringify({ analysis: analysisResult, answers: collectedAnswers, language: analysisResult?.language || localStorage.getItem('selected_language') || 'en' }),
       });
       if (apiError) throw new Error(apiError.message);
 
