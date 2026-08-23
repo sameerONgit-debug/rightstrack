@@ -9,7 +9,33 @@ export default function DocumentViewPage() {
   useEffect(() => {
     const rawDoc = sessionStorage.getItem('current_document') || sessionStorage.getItem('current_case');
     if (rawDoc) {
-      try { setDoc(JSON.parse(rawDoc)); return; } catch (e) {}
+      try {
+        const parsed = JSON.parse(rawDoc);
+        const rawSections = Array.isArray(parsed.sections) ? parsed.sections : [];
+        const hasVisibleSectionContent = rawSections.some((section) => String(section?.content || '').trim());
+        const normalizedSections = hasVisibleSectionContent
+          ? rawSections
+          : String(parsed.draft || parsed.document_text || '').trim()
+            ? [{ heading: 'AI-Generated Draft', content: parsed.draft || parsed.document_text }]
+            : rawSections;
+
+        const normalizedCitations = Array.isArray(parsed.citations)
+          ? parsed.citations.map((citation) => ({
+              ...citation,
+              act: citation.act || citation.act_name || citation.actName || 'Legal source',
+              section: citation.section || citation.section_number || citation.sectionNumber || '',
+              quote: citation.quote || citation.section_title || citation.sectionTitle || '',
+            }))
+          : [];
+
+        setDoc({
+          ...parsed,
+          authorityRecipient: parsed.authorityRecipient || parsed.authority_recipient || 'Competent Authority',
+          sections: normalizedSections,
+          citations: normalizedCitations,
+        });
+        return;
+      } catch (e) {}
     }
     setDoc({
       title: 'Formal Legal Grievance & Application',
@@ -49,20 +75,27 @@ export default function DocumentViewPage() {
             {doc.sections?.map((s, idx) => (
               <div key={idx} className="mb-4">
                 <h2 className="font-bold text-sm text-[#1A3826] mb-1">{s.heading}</h2>
-                <p className="text-sm text-[#3E3423] leading-relaxed">{s.content}</p>
+                <p className="text-sm text-[#3E3423] leading-relaxed whitespace-pre-wrap">{s.content}</p>
               </div>
             ))}
+            {!doc.sections?.length && doc.draft && (
+              <p className="text-sm text-[#3E3423] leading-relaxed whitespace-pre-wrap">{doc.draft}</p>
+            )}
           </div>
 
           <div className="lg:col-span-5 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-[#7A6D56]">Statutory Citations</h3>
-            {doc.citations?.map((c, idx) => (
+            {doc.citations?.length ? doc.citations.map((c, idx) => (
               <div key={idx} className="bg-[#F8F4EC] p-4 rounded-2xl border border-[#DCD1BC]">
                 <h4 className="text-sm font-bold text-[#1A3826]">{c.act}</h4>
                 <span className="text-xs font-mono text-[#6B5E48] block mb-2">{c.section}</span>
-                <p className="text-xs italic bg-[#EFE8DA] p-3 rounded-xl border border-[#DBD0BA]">{c.quote}</p>
+                <p className="text-xs italic bg-[#EFE8DA] p-3 rounded-xl border border-[#DBD0BA]">{c.quote || 'Verified source used for this draft.'}</p>
               </div>
-            ))}
+            )) : (
+              <div className="bg-[#F8F4EC] p-4 rounded-2xl border border-[#DCD1BC]">
+                <p className="text-xs text-[#6B5E48] leading-relaxed">The document was generated from the case facts, but no verified statutory citation was retrieved. Legal citations should be verified before filing.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
