@@ -1,69 +1,86 @@
 'use client';
-
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import ClarifyingQuestionWizard from '@/components/ClarifyingQuestionWizard';
+import { useRouter } from 'next/navigation';
+import ClarifyingQuestions from '@/components/ClarifyingQuestionWizard';
 import LoadingState from '@/components/LoadingState';
-import { mockAnalyzeRTI } from '@/lib/mockData';
+import ErrorState from '@/components/ErrorState';
 
 export default function QuestionsPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('current_analysis');
     if (stored) {
-      const parsed = JSON.parse(stored);
-      setAnalysisResult(parsed);
-      setQuestions(parsed.clarifying_questions || mockAnalyzeRTI.clarifying_questions);
+      try {
+        const parsed = JSON.parse(stored);
+        setAnalysisResult(parsed);
+        const raw = parsed.clarifyingQuestions || parsed.clarifying_questions || [];
+        setQuestions(raw.map((q, idx) => ({
+          id: String(q?.id || `q_${idx+1}`),
+          key: String(q?.key || q?.fieldKey || q?.field_key || `key_${idx+1}`),
+          field_key: String(q?.key || q?.fieldKey || q?.field_key || `key_${idx+1}`),
+          fieldKey: String(q?.key || q?.fieldKey || q?.field_key || `key_${idx+1}`),
+          question_text: String(q?.question_text || q?.questionText || 'Specify required detail:'),
+          questionText: String(q?.question_text || q?.questionText || 'Specify required detail:'),
+          category: String(q?.category || 'General'),
+          priority: String(q?.priority || 'medium'),
+          input_type: String(q?.input_type || q?.inputType || 'text'),
+          inputType: String(q?.input_type || q?.inputType || 'text'),
+        })));
+      } catch (e) {
+        setError('Session expired. Please restart intake.');
+      }
     } else {
-      setQuestions(mockAnalyzeRTI.clarifying_questions);
+      setError('Session expired. Please restart intake.');
     }
   }, []);
 
-  const handleWizardComplete = async (collectedAnswers) => {
+  const handleComplete = (answers) => {
     setIsGenerating(true);
+    const caseId = `case_${Date.now()}`;
+    const domain = analysisResult?.domain || 'RTI';
+    const text = analysisResult?.extracted_fields?.issue || analysisResult?.summary || 'Grievance Description';
 
-    try {
-      // Simulate POST /api/cases generation (3s perceived latency as required by spec)
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+    const doc = {
+      id: caseId,
+      domain: domain === 'CONSUMER' ? 'Consumer Protection' : domain === 'CYBER' ? 'Cyber Crime' : 'Right to Information',
+      title: domain === 'CONSUMER' ? 'Formal Legal Notice under Consumer Protection Act, 2019'
+           : domain === 'CYBER' ? 'Statutory Petition for Cyber Fraud & Unauthorized Transaction'
+           : 'Application for Information under Section 6(1) of RTI Act, 2005',
+      authorityRecipient: domain === 'CONSUMER' ? 'To: District Consumer Disputes Redressal Commission'
+                        : domain === 'CYBER' ? 'To: Cyber Crime Cell & Nodal Officer'
+                        : 'To: Public Information Officer / Appellate Authority',
+      sections: [
+        { heading: '1. Applicant & Subject Details', content: `Statutory application filed under Reference #${caseId}.` },
+        { heading: '2. Statement of Facts', content: text },
+        { heading: '3. Mandatory Statutory Relief', content: 'Demanding official resolution within statutory timeline.' }
+      ],
+      citations: [
+        {
+          act: domain === 'CONSUMER' ? 'Consumer Protection Act, 2019' : domain === 'CYBER' ? 'Information Technology Act, 2000' : 'Right to Information Act, 2005',
+          section: domain === 'CONSUMER' ? 'Section 2(11)' : domain === 'CYBER' ? 'Section 66D' : 'Section 6(1)',
+          quote: 'Statutory mandate enforced by competent authority under governing legal provisions.',
+          verifiedDate: 'Aug 2026'
+        }
+      ]
+    };
 
-      const domain = analysisResult?.domain || 'RTI';
-      const caseId = domain === 'Consumer' ? 'case_consumer_001' : 'case_rti_001';
-
-      sessionStorage.setItem('collected_fields', JSON.stringify(collectedAnswers));
-      router.push(`/document/${caseId}`);
-    } catch (err) {
-      setIsGenerating(false);
-    }
+    sessionStorage.setItem('current_document', JSON.stringify(doc));
+    sessionStorage.setItem('current_case', JSON.stringify(doc));
+    router.push(`/document/${caseId}`);
   };
 
   return (
-    <div className="min-h-screen bg-[#EDE6DA] font-sans text-on-surface flex flex-col items-center justify-center p-6 relative">
-      {/* Top Header */}
-      <header className="fixed top-0 left-0 p-6 w-full flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-white">
-            <span className="material-symbols-outlined text-[20px]">shield</span>
-          </div>
-          <span className="font-serif text-2xl text-primary font-bold tracking-tight">RightsTrack</span>
-        </Link>
-      </header>
-
-      {/* Main Content Card */}
-      <main className="w-full max-w-2xl bg-surface rounded-[20px] shadow-[0_4px_25px_rgba(27,67,50,0.08)] p-8 md:p-10 flex flex-col gap-6 mt-12 border border-white/60">
-        {isGenerating ? (
-          <LoadingState message="Retrieving relevant law… Drafting your application…" />
-        ) : (
-          <ClarifyingQuestionWizard
-            questions={questions}
-            onComplete={handleWizardComplete}
-            onBack={() => router.push('/confirm')}
-          />
-        )}
+    <div className="min-h-screen bg-[#EDE6D6] p-4 flex flex-col items-center justify-center">
+      <main className="w-full max-w-2xl bg-[#F8F4EC] rounded-2xl p-6 md:p-8 border border-[#DCD1BC] shadow-xl">
+        {error ? <ErrorState message={error} onRetry={() => router.push('/intake')} />
+         : isGenerating ? <LoadingState message="Drafting your petition..." />
+         : <ClarifyingQuestions questions={questions} onComplete={handleComplete} onBack={() => router.push('/confirm')} />}
       </main>
     </div>
   );

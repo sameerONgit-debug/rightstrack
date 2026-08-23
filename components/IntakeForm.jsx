@@ -1,9 +1,109 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-export default function IntakeForm({ onSubmit, isLoading }) {
+const PHONETIC_WORDS = {
+  kisan: 'किसान',
+  paise: 'पैसे',
+  paisa: 'पैसा',
+  refund: 'रिफंड',
+  seller: 'सेलर',
+  product: 'प्रोडक्ट',
+  cooker: 'कुकर',
+  amazon: 'अमेज़न',
+  flipkart: 'फ्लिपकार्ट',
+  warranty: 'वारंटी',
+  defect: 'दोष',
+  landlord: 'मकान मालिक',
+  tenant: 'किरायेदार',
+  rent: 'किराया',
+  deposit: 'जमा राशि',
+  eviction: 'बेदखली',
+  salary: 'वेतन',
+  wages: 'मजदूरी',
+  employer: 'नियोक्ता',
+  company: 'कंपनी',
+  job: 'नौकरी',
+  work: 'काम',
+  government: 'सरकार',
+  officer: 'अधिकारी',
+  record: 'रिकॉर्ड',
+};
+
+const VOICE_PROMPTS = {
+  en: 'Please describe your issue now, I am listening.',
+  hi: 'कृपया अपनी समस्या बताएं, मैं सुन रहा हूँ।',
+  mr: 'कृपया आपली समस्या सांगा, मी ऐकत आहे.',
+  bn: 'অনুগ্রহ করে আপনার সমস্যা বলুন, আমি শুনছি।',
+  ta: 'தயவுசெய்து உங்கள் பிரச்சனையை சொல்லுங்கள், நான் கேட்கிறேன்.',
+};
+
+export default function IntakeForm({ onSubmit, isLoading, language = 'en', speechLocale = 'en-IN', phoneticHindi = false, copy = {} }) {
   const [text, setText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isPrompting, setIsPrompting] = useState(false);
+  const [micError, setMicError] = useState('');
+  const committedVoiceText = useRef('');
+
+  const handleMicClick = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setMicError('Voice input is not supported in this browser.');
+      return;
+    }
+
+    const startRecognition = () => {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLocale;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onstart = () => {
+        setMicError('');
+        setIsPrompting(false);
+        committedVoiceText.current = text;
+        setIsListening(true);
+      };
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const transcript = event.results[index][0].transcript;
+          if (event.results[index].isFinal) finalTranscript += transcript;
+          else interimTranscript += transcript;
+        }
+        if (finalTranscript) {
+          committedVoiceText.current = `${committedVoiceText.current}${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${finalTranscript.trim()}`;
+        }
+        setText(`${committedVoiceText.current}${interimTranscript ? `${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${interimTranscript}` : ''}`);
+      };
+      recognition.onerror = (event) => {
+        setMicError(event.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Voice input could not be started.');
+        setIsPrompting(false);
+        setIsListening(false);
+      };
+      recognition.onend = () => setIsListening(false);
+      try {
+        recognition.start();
+      } catch {
+        setMicError('Voice input could not be started.');
+        setIsPrompting(false);
+      }
+    };
+
+    setMicError('');
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      startRecognition();
+      return;
+    }
+
+    const utterance = new window.SpeechSynthesisUtterance(VOICE_PROMPTS[language] || VOICE_PROMPTS.en);
+    utterance.lang = speechLocale;
+    utterance.onend = startRecognition;
+    utterance.onerror = startRecognition;
+    setIsPrompting(true);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleChipClick = (chipText) => {
     if (chipText === 'PM-KISAN farmer subsidy delay') {
@@ -15,6 +115,25 @@ export default function IntakeForm({ onSubmit, isLoading }) {
     } else {
       setText(chipText);
     }
+  };
+
+  const handleTextKeyDown = (event) => {
+    if (!phoneticHindi || event.key !== ' ' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+    const input = event.currentTarget;
+    const cursor = input.selectionStart;
+    const beforeCursor = text.slice(0, cursor);
+    const match = beforeCursor.match(/(^|\s)([^\s]+)$/);
+    if (!match) return;
+    const translated = PHONETIC_WORDS[match[2].toLowerCase()];
+    if (!translated) return;
+
+    event.preventDefault();
+    const wordStart = cursor - match[2].length;
+    const nextText = `${text.slice(0, wordStart)}${translated} ${text.slice(cursor)}`;
+    setText(nextText);
+    requestAnimationFrame(() => {
+      input.setSelectionRange(wordStart + translated.length + 1, wordStart + translated.length + 1);
+    });
   };
 
   const handleSubmit = (e) => {
@@ -29,11 +148,23 @@ export default function IntakeForm({ onSubmit, isLoading }) {
       <div className="relative w-full">
         <textarea
           className="w-full min-h-[180px] bg-surface rounded-xl border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/20 p-4 font-sans text-base text-on-surface placeholder:text-outline resize-y shadow-sm outline-none transition-all"
-          placeholder="e.g., My landlord won't return my security deposit..."
+          placeholder={copy.placeholder || "e.g., My landlord won't return my security deposit..."}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleTextKeyDown}
           disabled={isLoading}
         ></textarea>
+        <button
+          type="button"
+          onClick={handleMicClick}
+          disabled={isLoading || isListening || isPrompting}
+          aria-label={isListening ? 'Listening' : isPrompting ? 'Playing voice prompt' : 'Start voice input'}
+          className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface px-3 py-2 text-xs font-semibold text-primary shadow-sm disabled:cursor-not-allowed"
+        >
+          <span className={`material-symbols-outlined text-[18px] ${isListening ? 'text-red-600 animate-pulse' : ''}`}>mic</span>
+          {isListening ? (copy.listening || 'Listening...') : isPrompting ? 'Please listen...' : (copy.speak || 'Speak')}
+        </button>
+        {micError && <p className="mt-2 text-xs text-red-600">{micError}</p>}
       </div>
 
       {/* Suggestion Chips */}

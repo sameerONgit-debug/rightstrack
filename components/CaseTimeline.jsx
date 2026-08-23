@@ -2,37 +2,43 @@
 
 import Link from 'next/link';
 
-export default function CaseTimeline({ caseId = 'case_rti_001', isOverdue = false }) {
+export default function CaseTimeline({ caseId = 'case_rti_001', filedDate = '2026-07-23', isExpired = false }) {
+  const originalFilingDate = new Date(`${filedDate}T00:00:00`);
+  const filingDateText = originalFilingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const createdDate = new Date(originalFilingDate.getTime() - 24 * 60 * 60 * 1000);
+  const createdDateText = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const responseDeadline = new Date(originalFilingDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const deadlineText = responseDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const events = [
     {
       id: 1,
       title: 'Case Created',
       description: 'Initiated by citizen via plain text intake',
-      date: 'Aug 10, 2026',
+      date: createdDateText,
       completed: true,
     },
     {
       id: 2,
       title: 'Application Filed',
       description: 'Submitted to Public Information / Block Development Office',
-      date: 'Aug 12, 2026',
+      date: filingDateText,
       completed: true,
       documentLink: `/document/${caseId}`,
     },
     {
       id: 3,
       title: 'Mandatory 30-Day Response Deadline',
-      description: isOverdue ? 'Deadline elapsed without response on Sep 11, 2026' : 'Awaiting statutory response from PIO',
-      date: 'Sep 11, 2026',
-      completed: isOverdue,
+      description: isExpired ? `Deadline elapsed without response on ${deadlineText}` : 'Awaiting statutory response from PIO',
+      date: deadlineText,
+      completed: isExpired,
       isDeadline: true,
     },
     {
       id: 4,
       title: 'First Appeal / Escalation',
-      description: isOverdue ? 'Escalation draft auto-generated citing S.19(1)' : 'Pending response deadline expiry',
-      date: isOverdue ? 'Sep 12, 2026' : 'Pending Expiry',
-      completed: isOverdue,
+      description: isExpired ? 'Escalation draft auto-generated citing S.19(1)' : 'Pending response deadline expiry',
+      date: isExpired ? filingDateText : 'Pending Expiry',
+      completed: isExpired,
       isEscalation: true,
     },
   ];

@@ -3,16 +3,33 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function WelcomePage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    router.push('/intake');
+    if (isSigningIn) return;
+    if (!email.trim() || !password.trim()) {
+      setAuthError('Email and password are required.');
+      return;
+    }
+
+    setIsSigningIn(true);
+    setAuthError('');
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error || !data?.session) {
+      setAuthError(error?.message || 'Unable to sign in. Please check your email and password.');
+      setIsSigningIn(false);
+      return;
+    }
+    router.push('/dashboard');
   };
 
   const handleGuest = () => {
@@ -114,9 +131,9 @@ export default function WelcomePage() {
                   <label className="block font-sans text-xs font-semibold text-on-surface" htmlFor="password">
                     Password
                   </label>
-                  <a className="font-sans text-xs text-secondary hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">
+                  <Link className="font-sans text-xs text-secondary hover:text-primary transition-colors underline-offset-4 hover:underline" href="/auth/forgot-password">
                     Forgot?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -147,11 +164,13 @@ export default function WelcomePage() {
               </div>
 
               {/* Primary Action */}
+              {authError && <p role="alert" className="text-sm text-red-700">{authError}</p>}
               <button
                 className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm font-sans font-semibold text-sm text-on-primary bg-primary-container hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200"
                 type="submit"
+                disabled={isSigningIn}
               >
-                Sign in
+                {isSigningIn ? 'Signing in...' : 'Sign in'}
               </button>
 
               {/* Divider */}
@@ -178,9 +197,9 @@ export default function WelcomePage() {
             {/* Footer Link */}
             <p className="mt-8 text-center font-sans text-sm text-on-surface-variant">
               Don't have an account?{' '}
-              <a className="font-semibold text-primary hover:text-secondary hover:underline transition-colors" href="#" onClick={handleGuest}>
+              <Link className="font-semibold text-primary hover:text-secondary hover:underline transition-colors" href="/auth/signup">
                 Sign up
-              </a>
+              </Link>
             </p>
           </div>
 

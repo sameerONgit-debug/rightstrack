@@ -3,9 +3,10 @@
 export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeCategory }) {
   const { domain, confidence, rationale } = analysisResult || {};
 
-  const isRTI = domain === 'RTI';
-  const isConsumer = domain === 'Consumer';
-  const isUnsupported = domain === 'Unsupported';
+  const normalizedDomain = String(domain || '').toUpperCase();
+  const isRTI = normalizedDomain === 'RTI';
+  const isConsumer = normalizedDomain === 'CONSUMER';
+  const isUnsupported = normalizedDomain === 'UNSUPPORTED';
 
   const domainTitle = isRTI
     ? 'RTI — Right to Information'
@@ -44,8 +45,7 @@ export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeC
       <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/30">
         <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Analysis Rationale</h3>
         <p className="font-sans text-base text-on-surface-variant leading-relaxed">
-          {rationale ||
-            'This looks like a government service delay based on the timelines you provided and the specific department mentioned. Our system matches this closely with standard Right to Information request structures.'}
+          {rationale || analysisResult?.rationale || analysisResult?.explanation || analysisResult?.summary || 'This grievance falls under statutory dispute resolution based on the provided facts.'}
         </p>
       </div>
 
