@@ -10,6 +10,7 @@ export async function POST(req) {
     const body = await req.json();
     const {
       domain,
+      suggested_category = '',
       narrative = '',
       extracted_fields = {},
       extractedFields = {},
@@ -18,29 +19,35 @@ export async function POST(req) {
     } = body;
 
     const normalizedDomain = String(domain || '').toUpperCase();
-    if (!['RTI', 'CONSUMER', 'CONSUMER PROTECTION'].includes(normalizedDomain)) {
-      return NextResponse.json({
-        success: false,
-        error: 'This case does not currently map to a supported grounded legal workflow.',
-      }, { status: 422 });
+    const resolvedDomain = normalizedDomain === 'RTI'
+      ? 'RTI'
+      : ['CONSUMER', 'CONSUMER PROTECTION'].includes(normalizedDomain)
+        ? 'Consumer'
+        : 'Unsupported';
+
+    if (!String(narrative || '').trim()) {
+      return NextResponse.json({ success: false, error: 'The original grievance narrative is required.' }, { status: 400 });
     }
 
-    const resolvedDomain = normalizedDomain === 'RTI' ? 'RTI' : 'Consumer';
     const fields = { ...extractedFields, ...extracted_fields };
-    const caseContext = `${narrative}\n\nKnown facts:\n${JSON.stringify(fields)}\n\nUser answers:\n${JSON.stringify(answers)}`;
+    const caseContext = `${narrative}\n\nAI category: ${suggested_category}\n\nKnown facts:\n${JSON.stringify(fields)}\n\nUser answers:\n${JSON.stringify(answers)}`;
 
+    // The existing statutory RAG corpus is domain-specific. Do not feed an
+    // unrelated grievance into an RTI/Consumer corpus just to manufacture a citation.
     let retrievedChunks = [];
-    try {
-      retrievedChunks = await retrieve(caseContext, resolvedDomain, 6, 0.45);
-    } catch (ragError) {
-      console.warn('[Draft API] RAG retrieval unavailable:', ragError.message);
+    if (resolvedDomain === 'RTI' || resolvedDomain === 'Consumer') {
+      try {
+        retrievedChunks = await retrieve(caseContext, resolvedDomain, 6, 0.45);
+      } catch (ragError) {
+        console.warn('[Draft API] RAG retrieval unavailable:', ragError.message);
+      }
     }
 
     const result = await buildDraft({
       domain: resolvedDomain,
       fields,
       retrievedChunks,
-      narrative: String(narrative || '').trim(),
+      narrative: String(narrative).trim(),
       answers,
       language,
     });
@@ -49,16 +56,16 @@ export async function POST(req) {
       success: true,
       data: {
         id: `doc_${Date.now()}`,
-        domain: resolvedDomain === 'Consumer' ? 'Consumer Protection' : 'RTI',
-        title: result.title || (resolvedDomain === 'RTI' ? 'RTI Application' : 'Consumer Complaint'),
-        authorityRecipient: result.authority_recipient || result.authorityRecipient || 'Competent Authority',
-        sections: result.sections || [
-          { heading: 'AI-Generated Draft', content: result.document_text || '' },
-        ],
+        domain: resolvedDomain === 'Consumer' ? 'Consumer Protection' : resolvedDomain === 'RTI' ? 'RTI' : 'Other / AI-identified matter',
+        suggested_category,
+        title: result.title || 'Personalized Legal & Civic Guidance',
+        authorityRecipient: result.authority_recipient || result.authorityRecipient || 'Authority to be confirmed from jurisdiction',
+        sections: result.sections || [{ heading: 'AI-Generated Draft', content: result.document_text || '' }],
         citations: result.citations || [],
         draft: result.document_text || '',
         explanation_text: result.explanation_text || '',
         missing_information: result.missing_information || [],
+        guidance: result.guidance || null,
         grounded: result.grounded === true,
         grounding_summary: result.grounding_summary || null,
         ai_generated: true,
@@ -68,7 +75,7 @@ export async function POST(req) {
   } catch (error) {
     console.error('[Draft API]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to generate legal document' },
+      { success: false, error: error.message || 'Failed to generate the case guidance and document.' },
       { status: 500 }
     );
   }
