@@ -40,13 +40,16 @@ export default function QuestionsPage() {
     try {
       const { data, error: apiError } = await apiFetch('/api/cases', {
         method: 'POST',
-        body: JSON.stringify({ analysis: analysisResult, answers: collectedAnswers, language: analysisResult?.language || localStorage.getItem('selected_language') || 'en' }),
+        body: JSON.stringify({ analysis: analysisResult, answers: collectedAnswers, narrative: analysisResult?.narrative || analysisResult?.text, language: analysisResult?.language || localStorage.getItem('selected_language') || 'en' }),
       });
       if (apiError) throw new Error(apiError.message);
 
       sessionStorage.setItem('collected_fields', JSON.stringify(collectedAnswers));
-      sessionStorage.setItem('current_case', JSON.stringify(data));
-      router.push(`/document/${data.caseId}`);
+      const caseData = data?.data || data;
+      const caseId = caseData?.case_id || caseData?.caseId || caseData?.id;
+      if (!caseId) throw new Error('The case response did not include a case ID.');
+      sessionStorage.setItem('current_case', JSON.stringify(caseData));
+      router.push(`/document/${caseId}`);
     } catch (err) {
       setError(err.message || 'We could not draft your document. Please try again.');
       setIsGenerating(false);

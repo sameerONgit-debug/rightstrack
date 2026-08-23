@@ -45,8 +45,7 @@ export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeC
       <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/30">
         <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Analysis Rationale</h3>
         <p className="font-sans text-base text-on-surface-variant leading-relaxed">
-          {rationale ||
-            'This looks like a government service delay based on the timelines you provided and the specific department mentioned. Our system matches this closely with standard Right to Information request structures.'}
+          {rationale || analysisResult?.summary || 'The backend did not return an analysis rationale.'}
         </p>
       </div>
 

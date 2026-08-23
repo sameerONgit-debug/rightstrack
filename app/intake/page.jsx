@@ -7,6 +7,14 @@ import IntakeForm from '@/components/IntakeForm';
 import ErrorState from '@/components/ErrorState';
 import { apiFetch } from '@/lib/apiClient';
 
+const LANGUAGES = {
+  en: { label: 'English', locale: 'en-IN', heading: "What's going on?", helper: 'Describe your situation in your own words — no legal jargon needed.', placeholder: "e.g., My landlord won't return my security deposit...", speak: 'Speak', listening: 'Listening...' },
+  hi: { label: 'हिन्दी / Hindi', locale: 'hi-IN', heading: 'क्या हुआ?', helper: 'अपनी स्थिति अपने शब्दों में बताएं — कानूनी भाषा की आवश्यकता नहीं है।', placeholder: 'उदाहरण: मेरे मकान मालिक ने मेरी जमा राशि वापस नहीं की...', speak: 'बोलें', listening: 'सुन रहे हैं...' },
+  mr: { label: 'मराठी / Marathi', locale: 'mr-IN', heading: 'काय झाले?', helper: 'तुमची परिस्थिती तुमच्या शब्दांत सांगा — कायदेशीर भाषा आवश्यक नाही.', placeholder: 'उदाहरण: माझ्या मालकाने माझी ठेव परत केली नाही...', speak: 'बोला', listening: 'ऐकत आहे...' },
+  bn: { label: 'বাংলা / Bengali', locale: 'bn-IN', heading: 'কী হয়েছে?', helper: 'আপনার নিজের ভাষায় পরিস্থিতি বর্ণনা করুন — আইনি পরিভাষার প্রয়োজন নেই।', placeholder: 'উদাহরণ: আমার বাড়িওয়ালা আমার জামানত ফেরত দিচ্ছেন না...', speak: 'বলুন', listening: 'শুনছি...' },
+  ta: { label: 'தமிழ் / Tamil', locale: 'ta-IN', heading: 'என்ன நடந்தது?', helper: 'உங்கள் சொந்த வார்த்தைகளில் நிலைமையை விவரிக்கவும் — சட்ட மொழி தேவையில்லை.', placeholder: 'எடுத்துக்காட்டு: என் வீட்டு உரிமையாளர் முன்பணத்தைத் திருப்பித் தரவில்லை...', speak: 'பேசுங்கள்', listening: 'கேட்கிறது...' },
+};
+
 export default function IntakePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -15,13 +23,14 @@ export default function IntakePage() {
   const [phoneticHindi, setPhoneticHindi] = useState(false);
 
   useEffect(() => {
-    setSelectedLang(localStorage.getItem('selected_language') || 'en');
+    const savedLanguage = localStorage.getItem('selected_language') || 'en';
+    setSelectedLang(LANGUAGES[savedLanguage] ? savedLanguage : 'en');
     setPhoneticHindi(localStorage.getItem('phonetic_hindi') === 'true');
   }, []);
 
   const handleLanguageChange = (event) => {
     const language = event.target.value;
-    setSelectedLang(language);
+    setSelectedLang(LANGUAGES[language] ? language : 'en');
     localStorage.setItem('selected_language', language);
   };
 
@@ -42,11 +51,14 @@ export default function IntakePage() {
     try {
       const { data, error: apiError } = await apiFetch('/api/analyze', {
         method: 'POST',
-        body: JSON.stringify({ prompt: inputText, language: selectedLang }),
+        body: JSON.stringify({ narrative: inputText, prompt: inputText, language: selectedLang }),
       });
       if (apiError) throw new Error(apiError.message);
 
-      sessionStorage.setItem('current_analysis', JSON.stringify({ ...data, language: selectedLang }));
+      const analysis = data?.data || data;
+      if (!analysis?.domain) throw new Error('The analysis response was incomplete.');
+      const questions = analysis.clarifying_questions || analysis.clarifications || [];
+      sessionStorage.setItem('current_analysis', JSON.stringify({ ...analysis, clarifying_questions: questions, language: selectedLang, narrative: inputText }));
       router.push('/confirm');
     } catch (err) {
       setError("We couldn't process that — try rephrasing, or describe just the core issue in one sentence.");
@@ -72,7 +84,7 @@ export default function IntakePage() {
             className="rounded-lg border border-outline-variant/30 bg-surface px-3 py-2 text-sm text-primary shadow-sm"
           >
             <option value="en">English</option>
-            <option value="hi">हिन्दी / Hindi</option>
+            {Object.entries(LANGUAGES).map(([code, language]) => <option key={code} value={code}>{language.label}</option>)}
           </select>
           <label className="flex items-center gap-1.5 text-xs font-medium text-primary">
             <input type="checkbox" checked={phoneticHindi} onChange={handlePhoneticToggle} className="h-4 w-4 accent-primary" />
@@ -95,9 +107,9 @@ export default function IntakePage() {
 
         {/* Heading & Subtext */}
         <div className="flex flex-col gap-2">
-          <h1 className="font-serif text-3xl md:text-4xl font-bold text-primary">What's going on?</h1>
+          <h1 className="font-serif text-3xl md:text-4xl font-bold text-primary">{LANGUAGES[selectedLang].heading}</h1>
           <p className="font-sans text-base text-on-surface-variant leading-relaxed">
-            Describe your situation in your own words — no legal jargon needed.
+            {LANGUAGES[selectedLang].helper}
           </p>
         </div>
 
@@ -105,7 +117,7 @@ export default function IntakePage() {
         {error ? (
           <ErrorState message={error} onRetry={() => setError(null)} />
         ) : (
-          <IntakeForm onSubmit={handleAnalyze} isLoading={isLoading} language={selectedLang} phoneticHindi={phoneticHindi} />
+          <IntakeForm onSubmit={handleAnalyze} isLoading={isLoading} language={selectedLang} speechLocale={LANGUAGES[selectedLang].locale} phoneticHindi={phoneticHindi} copy={LANGUAGES[selectedLang]} />
         )}
       </main>
     </div>

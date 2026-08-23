@@ -7,7 +7,8 @@ export async function POST(request) {
       return Response.json({ error: { code: 'INVALID_INPUT', message: 'Analysis and answers are required.' } }, { status: 400 });
     }
 
-    const document = await draftCase({ analysis, answers, language: language === 'hi' ? 'hi' : 'en' });
+    const supportedLanguages = new Set(['en', 'hi', 'mr', 'bn', 'ta']);
+    const document = await draftCase({ analysis, answers, language: supportedLanguages.has(language) ? language : 'en' });
     const caseId = `case_${Date.now()}`;
     const citations = document.citations || document.legal_citations || analysis.citations || analysis.legal_citations || [];
     return Response.json({

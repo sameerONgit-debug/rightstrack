@@ -30,7 +30,7 @@ const PHONETIC_WORDS = {
   record: 'रिकॉर्ड',
 };
 
-export default function IntakeForm({ onSubmit, isLoading, language = 'en', phoneticHindi = false }) {
+export default function IntakeForm({ onSubmit, isLoading, language = 'en', speechLocale = 'en-IN', phoneticHindi = false, copy = {} }) {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [micError, setMicError] = useState('');
@@ -44,7 +44,7 @@ export default function IntakeForm({ onSubmit, isLoading, language = 'en', phone
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+    recognition.lang = speechLocale;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onstart = () => {
@@ -116,7 +116,7 @@ export default function IntakeForm({ onSubmit, isLoading, language = 'en', phone
       <div className="relative w-full">
         <textarea
           className="w-full min-h-[180px] bg-surface rounded-xl border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/20 p-4 font-sans text-base text-on-surface placeholder:text-outline resize-y shadow-sm outline-none transition-all"
-          placeholder="e.g., My landlord won't return my security deposit..."
+          placeholder={copy.placeholder || "e.g., My landlord won't return my security deposit..."}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleTextKeyDown}
@@ -130,7 +130,7 @@ export default function IntakeForm({ onSubmit, isLoading, language = 'en', phone
           className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface px-3 py-2 text-xs font-semibold text-primary shadow-sm disabled:cursor-not-allowed"
         >
           <span className={`material-symbols-outlined text-[18px] ${isListening ? 'text-red-600 animate-pulse' : ''}`}>mic</span>
-          {isListening ? 'Listening...' : 'Speak'}
+          {isListening ? (copy.listening || 'Listening...') : (copy.speak || 'Speak')}
         </button>
         {micError && <p className="mt-2 text-xs text-red-600">{micError}</p>}
       </div>
