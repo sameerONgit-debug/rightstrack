@@ -1,99 +1,62 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(req) {
+/**
+ * POST /api/analyze
+ * Classifies citizen narrative into RTI or Consumer domain, extracts entities, and generates clarifying questions.
+ */
+export async function POST(request) {
   try {
-    const body = await req.json();
-    const prompt = body.narrative || body.prompt || '';
-    if (!prompt.trim()) {
-      return NextResponse.json({ error: 'Narrative is required.' }, { status: 400 });
+    const body = await request.json();
+    const { narrative } = body;
+
+    if (!narrative || narrative.trim().length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: { code: 'INVALID_INPUT', message: 'Problem narrative is required.' },
+        },
+        { status: 400 }
+      );
     }
 
-    const text = prompt.toLowerCase();
-    let detectedDomain = 'RTI';
-    let domainName = 'Right to Information';
-    let title = 'Statutory Information Disclosure Request';
-    let rationale = 'This matter falls under public transparency and information disclosure mandates.';
-    
-    let questions = [
-      {
-        id: 'q_auth',
-        key: 'target_authority',
-        field_key: 'target_authority',
-        fieldKey: 'target_authority',
-        question_text: 'Name of the Public Authority / Department:',
-        questionText: 'Name of the Public Authority / Department:',
-        category: 'Authority',
-        priority: 'high',
-        input_type: 'text',
-        inputType: 'text'
-      }
-    ];
+    // Mock analysis pipeline stub conforming to docs/mvp-spec.md contract
+    const isConsumer = /refund|seller|order|warranty|delivery|bought|product|amazon|flipkart/i.test(narrative);
 
-    if (text.includes('cyber') || text.includes('upi') || text.includes('bank') || text.includes('fraud') || text.includes('scam') || text.includes('unauthorized')) {
-      detectedDomain = 'CYBER';
-      domainName = 'Cyber Crime & IT Act';
-      title = 'Unauthorized Cyber & Banking Transaction Dispute';
-      rationale = 'The grievance pertains to unauthorized digital debit under IT Act & RBI Ombudsman rules.';
-      questions = [
+    const result = {
+      domain: isConsumer ? 'CONSUMER' : 'RTI',
+      confidence: 0.94,
+      rationale: isConsumer
+        ? 'Problem describes a transaction for goods or services with deficiency/unfair trade practice under Consumer Protection Act 2019.'
+        : 'Problem relates to government public works, municipal operations, or official records under Right to Information Act 2005.',
+      entities: {
+        applicant_name: null,
+        target_entity: isConsumer ? 'Online Merchant / Service Provider' : 'Public Authority / Municipal Office',
+        relief_sought: isConsumer ? 'Replacement or full refund with compensation' : 'Certified copies of official records',
+      },
+      clarifications: [
         {
-          id: 'q_tx',
-          key: 'transaction_id',
-          field_key: 'transaction_id',
-          fieldKey: 'transaction_id',
-          question_text: 'Transaction Reference / UTR Number:',
-          questionText: 'Transaction Reference / UTR Number:',
-          category: 'Financial',
-          priority: 'high',
-          input_type: 'text',
-          inputType: 'text'
+          id: 'authority_name',
+          question: isConsumer ? 'What is the company name or merchant name?' : 'Which specific public department or municipal authority is responsible?',
+          required: true,
         },
         {
-          id: 'q_bank',
-          key: 'bank_name',
-          field_key: 'bank_name',
-          fieldKey: 'bank_name',
-          question_text: 'Name of Bank / Digital Payment App:',
-          questionText: 'Name of Bank / Digital Payment App:',
-          category: 'Entity',
-          priority: 'medium',
-          input_type: 'text',
-          inputType: 'text'
-        }
-      ];
-    } else if (text.includes('flight') || text.includes('airline') || text.includes('refund') || text.includes('consumer') || text.includes('product') || text.includes('warranty')) {
-      detectedDomain = 'CONSUMER';
-      domainName = 'Consumer Protection';
-      title = 'Deficiency in Commercial Service & Non-Refund';
-      rationale = 'The grievance falls under Section 2(11) of the Consumer Protection Act, 2019.';
-      questions = [
-        {
-          id: 'q_order',
-          key: 'booking_ref',
-          field_key: 'booking_ref',
-          fieldKey: 'booking_ref',
-          question_text: 'Booking PNR / Order Reference ID:',
-          questionText: 'Booking PNR / Order Reference ID:',
-          category: 'Booking',
-          priority: 'high',
-          input_type: 'text',
-          inputType: 'text'
-        }
-      ];
-    }
-
-    const payload = {
-      domain: detectedDomain,
-      domainName: domainName,
-      confidence: 0.95,
-      summary: title,
-      rationale: rationale,
-      extracted_fields: { issue: prompt },
-      clarifyingQuestions: questions,
-      clarifying_questions: questions
+          id: 'reference_id',
+          question: isConsumer ? 'What is your invoice or order number?' : 'Do you have an application or tender reference number?',
+          required: false,
+        },
+      ],
     };
 
-    return NextResponse.json({ success: true, data: payload, analysis: payload, ...payload });
+    return NextResponse.json({ success: true, data: result, error: null });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: { code: 'ANALYSIS_ERROR', message: error.message },
+      },
+      { status: 500 }
+    );
   }
 }
