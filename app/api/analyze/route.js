@@ -16,7 +16,8 @@ export async function POST(request) {
       );
     }
 
-    const analysis = await analyze(narrative.trim());
+    const originalNarrative = narrative.trim();
+    const analysis = await analyze(originalNarrative);
     const domain = analysis.domain === 'Consumer'
       ? 'CONSUMER'
       : analysis.domain === 'RTI'
@@ -26,6 +27,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       data: {
+        narrative: originalNarrative,
         domain,
         confidence: analysis.confidence,
         rationale: analysis.rationale,
