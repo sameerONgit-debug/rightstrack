@@ -17,7 +17,7 @@ export async function POST(request) {
 
     if (!narrative || !narrative.trim()) {
       return NextResponse.json(
-        { success: false, data: null, error: { code: 'INVALID_INPUT', message: 'Problem narrative is required.' } },
+        { success: false, data: null, error: 'Problem narrative is required.' },
         { status: 400 }
       );
     }
@@ -56,7 +56,7 @@ export async function POST(request) {
     const message = readableError(error);
     console.error('[Analyze API]', message, error);
     return NextResponse.json(
-      { success: false, data: null, error: { code: 'ANALYSIS_ERROR', message } },
+      { success: false, data: null, error: message },
       { status: 500 }
     );
   }
