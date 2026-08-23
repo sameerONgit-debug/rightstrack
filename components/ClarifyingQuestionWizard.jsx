@@ -23,7 +23,7 @@ export default function ClarifyingQuestionWizard({ questions = [], onComplete, o
     const updatedAnswers = { ...answers, [currentQ.field_key]: currentValue };
     setAnswers(updatedAnswers);
 
-    if (currentIndex < questions.length - 1) {
+    if (currentIndex < (questions?.length || 1) - 1) {
       setCurrentIndex(currentIndex + 1);
       const nextKey = questions[currentIndex + 1]?.field_key;
       setCurrentValue(updatedAnswers[nextKey] || '');
@@ -49,7 +49,7 @@ export default function ClarifyingQuestionWizard({ questions = [], onComplete, o
       {/* Header & Dots */}
       <div className="flex flex-col items-center gap-2">
         <span className="font-sans text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-          Question {currentIndex + 1} of {questions.length}
+          Question {currentIndex + 1} of {Math.max(questions?.length || 0, 1)}
         </span>
         <div className="flex gap-2">
           {questions.map((_, idx) => (
@@ -122,7 +122,7 @@ export default function ClarifyingQuestionWizard({ questions = [], onComplete, o
           onClick={handleNext}
           className="font-sans font-semibold text-sm bg-primary text-on-primary rounded-xl px-6 py-2.5 hover:bg-primary-container transition-all flex items-center gap-2"
         >
-          <span>{currentIndex === questions.length - 1 ? 'Generate Document' : 'Next'}</span>
+          <span>{currentIndex === (questions?.length || 1) - 1 ? 'Generate Document' : 'Next'}</span>
           <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </button>
       </div>

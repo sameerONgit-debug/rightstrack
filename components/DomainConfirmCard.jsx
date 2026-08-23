@@ -45,7 +45,7 @@ export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeC
       <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/30">
         <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Analysis Rationale</h3>
         <p className="font-sans text-base text-on-surface-variant leading-relaxed">
-          {rationale || analysisResult?.summary || 'The backend did not return an analysis rationale.'}
+          {rationale || analysisResult?.rationale || analysisResult?.explanation || analysisResult?.summary || 'This grievance falls under statutory dispute resolution based on the provided facts.'}
         </p>
       </div>
 

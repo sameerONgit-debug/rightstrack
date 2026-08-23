@@ -1,0 +1,28 @@
+# Query: gemini-pro
+# ContextLines: 1
+
+5 results - 4 files
+
+rightstrack\lib\agents\draftsmanAgent.js:
+   84      const docType = documentType || template.type;
+   85:     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+   86  
+
+  266    try {
+  267:     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  268  
+
+rightstrack\lib\agents\intakeAgent.js:
+  43    try {
+  44:     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  45  
+
+rightstrack\lib\agents\ragAgent.js:
+  124    try {
+  125:     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  126  
+
+rightstrack\lib\agents\watchdogAgent.js:
+  210    try {
+  211:     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  212  
