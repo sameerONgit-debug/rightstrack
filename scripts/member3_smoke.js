@@ -4,16 +4,22 @@ const { extract } = require('../lib/ai/extract');
 const { validateGeneratedText, validateResult } = require('../lib/rag/validate');
 
 (async () => {
-  const rti = await classify('My PM-KISAN farmer subsidy has not arrived and the block office will not explain why');
+  // These intentionally avoid relying on the exact keyword list. When Claude
+  // is configured, they verify semantic understanding rather than regex hits.
+  const rti = await classify('I need copies of the records held by the district office showing how the road repair contract was awarded');
   assert.strictEqual(rti.domain, 'RTI');
 
-  const consumer = await classify('I bought a pressure cooker online for ₹2,400, it arrived with a cracked lid, and the seller is refusing to refund me');
+  const consumer = await classify('A laptop I paid for arrived unusable and the company keeps refusing to return my money');
   assert.strictEqual(consumer.domain, 'Consumer');
 
   const unsupported = await classify('My landlord is trying to evict me without giving proper notice');
   assert.strictEqual(unsupported.domain, 'Unsupported');
 
-  const fields = extract('The seller is ABC Store and I bought a pressure cooker for ₹2499. I want a refund.', 'Consumer');
+  const nonsense = await classify('khjvbjhvnbvnb mn ,');
+  assert.strictEqual(nonsense.domain, 'Unsupported');
+  assert.strictEqual(nonsense.is_valid_problem, false);
+
+  const fields = await extract('The seller is ABC Store and I bought a pressure cooker for ₹2499. I want a refund.', 'Consumer');
   assert.strictEqual(fields.merchant_name, 'ABC Store');
   assert.strictEqual(fields.claim_amount, '2499');
 
