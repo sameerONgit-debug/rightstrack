@@ -12,6 +12,11 @@ const { validateGeneratedText, validateResult } = require('../lib/rag/validate')
   const consumer = await classify('A laptop I paid for arrived unusable and the company keeps refusing to return my money');
   assert.strictEqual(consumer.domain, 'Consumer');
 
+  const employment = await classify('My employer has not paid my salary for the last three months');
+  assert.strictEqual(employment.domain, 'Unsupported');
+  assert.match(employment.suggested_category || '', /Employment|Wage/i);
+  assert.strictEqual(employment.is_valid_problem, true);
+
   const unsupported = await classify('My landlord is trying to evict me without giving proper notice');
   assert.strictEqual(unsupported.domain, 'Unsupported');
 
@@ -22,6 +27,9 @@ const { validateGeneratedText, validateResult } = require('../lib/rag/validate')
   const fields = await extract('The seller is ABC Store and I bought a pressure cooker for ₹2499. I want a refund.', 'Consumer');
   assert.strictEqual(fields.merchant_name, 'ABC Store');
   assert.strictEqual(fields.claim_amount, '2499');
+
+  const employmentFields = await extract('My employer has not paid my salary for the last three months.', 'Unsupported');
+  assert.match(employmentFields.issue || '', /salary/i);
 
   const retrieved = [{ chunk_id: 'RTI-SEC-19(1)', act_name: 'Right to Information Act, 2005', section_number: 'Section 19(1)' }];
   const valid = validateResult({ document_text: 'A first appeal may be filed under Section 19(1).', citations: [{ chunk_id: 'RTI-SEC-19(1)', act_name: 'Right to Information Act, 2005', section_number: 'Section 19(1)' }] }, retrieved);
