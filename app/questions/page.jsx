@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ClarifyingQuestions from '@/components/ClarifyingQuestionWizard';
 import LoadingState from '@/components/LoadingState';
@@ -50,16 +49,17 @@ export default function QuestionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           domain: analysisResult?.domain,
+          suggested_category: analysisResult?.suggested_category || '',
           narrative: analysisResult?.narrative || sessionStorage.getItem('current_narrative') || '',
           extracted_fields: analysisResult?.entities || analysisResult?.extracted_fields || {},
           answers,
-          language: 'en',
+          language: analysisResult?.lang || 'en',
         }),
       });
 
       const payload = await response.json();
       if (!response.ok || !payload.success) {
-        throw new Error(payload.error || 'AI could not generate the case document.');
+        throw new Error(payload.error || 'AI could not generate the case guidance and document.');
       }
 
       const caseId = `case_${Date.now()}`;
