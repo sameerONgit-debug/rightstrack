@@ -336,7 +336,7 @@ Legal empowerment tools must uphold rigorous accuracy standards. RightsTrack enf
 ## 13. Live Demo & Media
 
 - **Live Application**: [https://rightstrack.vercel.app](https://rightstrack.vercel.app) *(Deployment Link)*
-
+- **Demo Video Walkthrough**: [https://youtube.com/watch?v=placeholder](https://youtube.com/watch?v=placeholder) *(3-Minute Presentation)*
 
 ---
 

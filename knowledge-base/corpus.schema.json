@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["chunk_id","act_name","section_number","section_title","full_text","jurisdiction","document_type","source_authority","source_url","effective_date","last_verified_date","domain_tag"],
+  "properties": {
+    "chunk_id": {"type":"string"},
+    "act_name": {"type":"string"},
+    "section_number": {"type":"string"},
+    "section_title": {"type":"string"},
+    "full_text": {"type":"string"},
+    "jurisdiction": {"type":"string"},
+    "document_type": {"enum":["statute","rule","procedural_guide","explainer"]},
+    "source_authority": {"type":"string"},
+    "source_url": {"type":"string","format":"uri"},
+    "effective_date": {"type":"string"},
+    "last_verified_date": {"type":"string"},
+    "domain_tag": {"enum":["RTI","Consumer"]}
+  }
+}
