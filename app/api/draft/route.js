@@ -45,6 +45,7 @@ export async function POST(req) {
 
     const result = await buildDraft({
       domain: resolvedDomain,
+      category: suggested_category,
       fields,
       retrievedChunks,
       narrative: String(narrative).trim(),
