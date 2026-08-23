@@ -2,9 +2,9 @@ name: Member 3 Tests
 
 on:
   push:
-    branches: [main, member3-ai-rag]
+    branches: [main, member3-ai-rag, rightstrack-final]
   pull_request:
-    branches: [main]
+    branches: [main, rightstrack-final]
 
 jobs:
   smoke:
