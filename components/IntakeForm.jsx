@@ -30,9 +30,18 @@ const PHONETIC_WORDS = {
   record: 'रिकॉर्ड',
 };
 
+const VOICE_PROMPTS = {
+  en: 'Please describe your issue now, I am listening.',
+  hi: 'कृपया अपनी समस्या बताएं, मैं सुन रहा हूँ।',
+  mr: 'कृपया आपली समस्या सांगा, मी ऐकत आहे.',
+  bn: 'অনুগ্রহ করে আপনার সমস্যা বলুন, আমি শুনছি।',
+  ta: 'தயவுசெய்து உங்கள் பிரச்சனையை சொல்லுங்கள், நான் கேட்கிறேன்.',
+};
+
 export default function IntakeForm({ onSubmit, isLoading, language = 'en', speechLocale = 'en-IN', phoneticHindi = false, copy = {} }) {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isPrompting, setIsPrompting] = useState(false);
   const [micError, setMicError] = useState('');
   const committedVoiceText = useRef('');
 
@@ -43,34 +52,57 @@ export default function IntakeForm({ onSubmit, isLoading, language = 'en', speec
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = speechLocale;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.onstart = () => {
-      setMicError('');
-      committedVoiceText.current = text;
-      setIsListening(true);
-    };
-    recognition.onresult = (event) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const transcript = event.results[index][0].transcript;
-        if (event.results[index].isFinal) finalTranscript += transcript;
-        else interimTranscript += transcript;
+    const startRecognition = () => {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLocale;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onstart = () => {
+        setMicError('');
+        setIsPrompting(false);
+        committedVoiceText.current = text;
+        setIsListening(true);
+      };
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const transcript = event.results[index][0].transcript;
+          if (event.results[index].isFinal) finalTranscript += transcript;
+          else interimTranscript += transcript;
+        }
+        if (finalTranscript) {
+          committedVoiceText.current = `${committedVoiceText.current}${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${finalTranscript.trim()}`;
+        }
+        setText(`${committedVoiceText.current}${interimTranscript ? `${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${interimTranscript}` : ''}`);
+      };
+      recognition.onerror = (event) => {
+        setMicError(event.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Voice input could not be started.');
+        setIsPrompting(false);
+        setIsListening(false);
+      };
+      recognition.onend = () => setIsListening(false);
+      try {
+        recognition.start();
+      } catch {
+        setMicError('Voice input could not be started.');
+        setIsPrompting(false);
       }
-      if (finalTranscript) {
-        committedVoiceText.current = `${committedVoiceText.current}${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${finalTranscript.trim()}`;
-      }
-      setText(`${committedVoiceText.current}${interimTranscript ? `${committedVoiceText.current && !committedVoiceText.current.endsWith(' ') ? ' ' : ''}${interimTranscript}` : ''}`);
     };
-    recognition.onerror = (event) => {
-      setMicError(event.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Voice input could not be started.');
-      setIsListening(false);
-    };
-    recognition.onend = () => setIsListening(false);
-    recognition.start();
+
+    setMicError('');
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      startRecognition();
+      return;
+    }
+
+    const utterance = new window.SpeechSynthesisUtterance(VOICE_PROMPTS[language] || VOICE_PROMPTS.en);
+    utterance.lang = speechLocale;
+    utterance.onend = startRecognition;
+    utterance.onerror = startRecognition;
+    setIsPrompting(true);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleChipClick = (chipText) => {
@@ -125,12 +157,12 @@ export default function IntakeForm({ onSubmit, isLoading, language = 'en', speec
         <button
           type="button"
           onClick={handleMicClick}
-          disabled={isLoading || isListening}
-          aria-label={isListening ? 'Listening' : 'Start voice input'}
+          disabled={isLoading || isListening || isPrompting}
+          aria-label={isListening ? 'Listening' : isPrompting ? 'Playing voice prompt' : 'Start voice input'}
           className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/30 bg-surface px-3 py-2 text-xs font-semibold text-primary shadow-sm disabled:cursor-not-allowed"
         >
           <span className={`material-symbols-outlined text-[18px] ${isListening ? 'text-red-600 animate-pulse' : ''}`}>mic</span>
-          {isListening ? (copy.listening || 'Listening...') : (copy.speak || 'Speak')}
+          {isListening ? (copy.listening || 'Listening...') : isPrompting ? 'Please listen...' : (copy.speak || 'Speak')}
         </button>
         {micError && <p className="mt-2 text-xs text-red-600">{micError}</p>}
       </div>
