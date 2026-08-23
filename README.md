@@ -117,7 +117,7 @@ flowchart TD
 ## 6. Screenshots
 
 ### Conversational Intake & Domain Classification
-![RightsTrack Intake Screen](/docs/screenshots/intake_screen_placeholder.png)
+![RightsTrack Intake Screen](https://github.com/pbhaskar7172-cmd/rightstrack2/blob/fac003608ede423ddb33fa85331ec8d718c51a05/Screenshot%202026-08-23%20190844.png)
 *Figure 1: Citizen enters problem narrative in natural language and receives AI domain classification.*
 
 ### Citation-Grounded Legal Document Drafting
