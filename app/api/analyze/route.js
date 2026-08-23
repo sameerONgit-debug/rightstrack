@@ -4,6 +4,12 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { analyze } = require('../../../lib/ai/analyze');
 
+function readableError(error) {
+  if (!error) return 'Unable to analyze the problem.';
+  if (typeof error === 'string') return error;
+  return error.message || error.error?.message || error.statusText || JSON.stringify(error);
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -47,9 +53,10 @@ export async function POST(request) {
       error: null,
     });
   } catch (error) {
-    console.error('[Analyze API]', error);
+    const message = readableError(error);
+    console.error('[Analyze API]', message, error);
     return NextResponse.json(
-      { success: false, data: null, error: { code: 'ANALYSIS_ERROR', message: error.message || 'Unable to analyze the problem.' } },
+      { success: false, data: null, error: { code: 'ANALYSIS_ERROR', message } },
       { status: 500 }
     );
   }
