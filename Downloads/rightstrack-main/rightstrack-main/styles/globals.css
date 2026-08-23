@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media print {
+	header,
+	nav,
+	.document-toolbar,
+	.document-sources,
+	.document-actions,
+	.disclaimer-banner,
+	footer {
+		display: none !important;
+	}
+
+	body,
+	main,
+	.document-viewer,
+	.document-canvas {
+		background: white !important;
+		color: black !important;
+		box-shadow: none !important;
+		border: 0 !important;
+		max-width: none !important;
+	}
+
+	.document-canvas {
+		display: block !important;
+		padding: 0 !important;
+	}
+}
