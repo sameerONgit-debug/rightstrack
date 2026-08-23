@@ -4,10 +4,6 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { analyze } = require('../../../lib/ai/analyze');
 
-/**
- * POST /api/analyze
- * Runs the AI-first RightsTrack intake pipeline.
- */
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -15,29 +11,22 @@ export async function POST(request) {
 
     if (!narrative || !narrative.trim()) {
       return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: {
-            code: 'INVALID_INPUT',
-            message: 'Problem narrative is required.',
-          },
-        },
+        { success: false, data: null, error: { code: 'INVALID_INPUT', message: 'Problem narrative is required.' } },
         { status: 400 }
       );
     }
 
     const analysis = await analyze(narrative.trim());
+    const domain = analysis.domain === 'Consumer'
+      ? 'CONSUMER'
+      : analysis.domain === 'RTI'
+        ? 'RTI'
+        : 'OTHER';
 
     return NextResponse.json({
       success: true,
       data: {
-        domain:
-          analysis.domain === 'Consumer'
-            ? 'CONSUMER'
-            : analysis.domain === 'RTI'
-              ? 'RTI'
-              : 'NEEDS_CLARIFICATION',
+        domain,
         confidence: analysis.confidence,
         rationale: analysis.rationale,
         suggested_category: analysis.suggested_category || '',
@@ -57,16 +46,8 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('[Analyze API]', error);
-
     return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: 'ANALYSIS_ERROR',
-          message: error.message || 'Unable to analyze the problem.',
-        },
-      },
+      { success: false, data: null, error: { code: 'ANALYSIS_ERROR', message: error.message || 'Unable to analyze the problem.' } },
       { status: 500 }
     );
   }
