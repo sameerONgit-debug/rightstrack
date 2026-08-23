@@ -125,7 +125,7 @@ flowchart TD
 *Figure 2: Grounded legal draft displaying interactive, verified statutory citation badges.*
 
 ### Real-Time Case Dashboard & Statutory Countdown
-![Case Tracker Dashboard](/docs/screenshots/dashboard_placeholder.png)
+![Case Tracker Dashboard](https://github.com/pbhaskar7172-cmd/rightstrack2/blob/ca1ad748b07a8c7e8ffdfedbc167ec6327fca2f0/Screenshot%202026-08-23%20190022.png)
 *Figure 3: Active case monitoring with deterministic statutory countdown timers.*
 
 ### Automated Deemed Refusal Escalation Draft
