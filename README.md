@@ -129,7 +129,7 @@ flowchart TD
 *Figure 3: Active case monitoring with deterministic statutory countdown timers.*
 
 ### Automated Deemed Refusal Escalation Draft
-![Escalation Appeal View](/docs/screenshots/escalation_draft_placeholder.png)
+![Escalation Appeal View](https://github.com/pbhaskar7172-cmd/rightstrack2/blob/4e22645c9c2fe0b8e616f50d6e50ef2272f7b999/Screenshot%202026-08-23%20190858.png)
 *Figure 4: Automated First Appeal generation triggered immediately upon deadline breach.*
 
 ---
