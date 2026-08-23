@@ -1,22 +1,18 @@
 'use client';
 
 export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeCategory }) {
-  const { domain, confidence, rationale, suggested_category, is_valid_problem } = analysisResult || {};
+  const { domain, confidence, rationale } = analysisResult || {};
 
   const normalizedDomain = String(domain || '').toUpperCase();
   const isRTI = normalizedDomain === 'RTI';
   const isConsumer = normalizedDomain === 'CONSUMER';
-  const isUnsupported = normalizedDomain === 'UNSUPPORTED' || normalizedDomain === 'OTHER' || normalizedDomain === 'NEEDS_CLARIFICATION';
-  const isValidProblem = is_valid_problem !== false;
-  const hasSuggestedCategory = Boolean(String(suggested_category || '').trim());
+  const isUnsupported = normalizedDomain === 'UNSUPPORTED';
 
   const domainTitle = isRTI
     ? 'RTI — Right to Information'
     : isConsumer
     ? 'Consumer Dispute — Consumer Protection'
-    : hasSuggestedCategory && isValidProblem
-    ? suggested_category
-    : 'Needs Clarification';
+    : 'Tenant / Rental Dispute';
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,7 +36,7 @@ export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeC
             <span className="material-symbols-outlined mr-1.5 text-[16px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
               verified
             </span>
-            <span>{Math.round((Number(confidence) || 0.94) * 100)}% Confidence Match</span>
+            <span>{Math.round((confidence || 0.94) * 100)}% Confidence Match</span>
           </div>
         )}
       </div>
@@ -61,9 +57,7 @@ export default function DomainConfirmCard({ analysisResult, onConfirm, onChangeC
             <h4 className="font-semibold text-sm">Responsible Decline Notice</h4>
           </div>
           <p className="text-sm leading-relaxed text-amber-950">
-            {hasSuggestedCategory && isValidProblem
-              ? `AI identified this as a ${suggested_category} matter. RightsTrack currently supports RTI and Consumer workflows, so it will not generate a grounded legal document for this category yet.`
-              : 'The provided text does not contain enough reliable information to identify a supported legal or civic problem. Please describe what happened, who is involved, and what outcome you need.'}
+            Rental law is primarily governed by state-specific Rent Control Acts, which aren't yet covered in this preview. We recommendcontacting your state's rent control authority or a local legal aid clinic. We cannot auto-generate a grounded legal document for this domain yet.
           </p>
         </div>
       )}
