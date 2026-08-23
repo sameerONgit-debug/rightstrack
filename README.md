@@ -121,7 +121,7 @@ flowchart TD
 *Figure 1: Citizen enters problem narrative in natural language and receives AI domain classification.*
 
 ### Citation-Grounded Legal Document Drafting
-![Citation Inspector View](/docs/screenshots/citation_view_placeholder.png)
+![Citation Inspector View](https://github.com/pbhaskar7172-cmd/rightstrack2/blob/d33e48f301ec1e80366178149d8c5b4704fe0122/Screenshot%202026-08-23%20172123.png)
 *Figure 2: Grounded legal draft displaying interactive, verified statutory citation badges.*
 
 ### Real-Time Case Dashboard & Statutory Countdown
