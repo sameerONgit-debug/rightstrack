@@ -4,10 +4,12 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { analyze } = require('../../../lib/ai/analyze');
 
-function readableError(error) {
-  if (!error) return 'Unable to analyze the problem.';
-  if (typeof error === 'string') return error;
-  return error.message || error.error?.message || error.statusText || JSON.stringify(error);
+function userFacingError(error) {
+  const message = typeof error === 'string' ? error : error?.message || '';
+  if (/AI (classification|fact extraction|question generation) unavailable|provider failed|api key|fetch failed/i.test(message)) {
+    return 'AI analysis is temporarily unavailable. Please try again in a moment.';
+  }
+  return message || 'Unable to analyze the problem.';
 }
 
 export async function POST(request) {
@@ -40,12 +42,13 @@ export async function POST(request) {
         suggested_category: analysis.suggested_category || '',
         is_valid_problem: analysis.is_valid_problem !== false,
         ai_generated: analysis.ai_generated === true,
+        ai_pipeline: analysis.ai_pipeline === true,
         entities: analysis.extracted_fields || {},
         extracted_fields: analysis.extracted_fields || {},
         clarifications: (analysis.clarifying_questions || []).map((question, index) => ({
           id: question.field_key || `clarification_${index + 1}`,
           question: question.question_text,
-          required: true,
+          required: question.required !== false,
           input_type: question.input_type || 'text',
         })),
         clarifying_questions: analysis.clarifying_questions || [],
@@ -53,10 +56,9 @@ export async function POST(request) {
       error: null,
     });
   } catch (error) {
-    const message = readableError(error);
-    console.error('[Analyze API]', message, error);
+    console.error('[Analyze API]', error?.message || error, error);
     return NextResponse.json(
-      { success: false, data: null, error: message },
+      { success: false, data: null, error: userFacingError(error) },
       { status: 500 }
     );
   }
