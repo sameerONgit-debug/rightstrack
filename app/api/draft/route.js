@@ -5,6 +5,14 @@ const require = createRequire(import.meta.url);
 const { buildDraft } = require('../../../lib/ai/draft');
 const { retrieve } = require('../../../lib/rag/retrieve');
 
+function userFacingError(error) {
+  const message = typeof error === 'string' ? error : error?.message || '';
+  if (/AI|provider|api key|fetch failed|Gemini/i.test(message)) {
+    return 'AI guidance is temporarily unavailable. Please try again in a moment.';
+  }
+  return message || 'Failed to generate the case guidance and document.';
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -30,16 +38,16 @@ export async function POST(req) {
     }
 
     const fields = { ...extractedFields, ...extracted_fields };
-    const caseContext = `${narrative}\n\nAI category: ${suggested_category}\n\nKnown facts:\n${JSON.stringify(fields)}\n\nUser answers:\n${JSON.stringify(answers)}`;
+    const caseContext = `${String(narrative).trim()}\n\nAI category: ${suggested_category}\n\nKnown facts:\n${JSON.stringify(fields)}\n\nUser answers:\n${JSON.stringify(answers)}`;
 
-    // The existing statutory RAG corpus is domain-specific. Do not feed an
-    // unrelated grievance into an RTI/Consumer corpus just to manufacture a citation.
+    // The statutory RAG corpus is domain-specific. Never manufacture a legal
+    // citation by retrieving an unrelated corpus for an AI-identified matter.
     let retrievedChunks = [];
     if (resolvedDomain === 'RTI' || resolvedDomain === 'Consumer') {
       try {
         retrievedChunks = await retrieve(caseContext, resolvedDomain, 6, 0.45);
       } catch (ragError) {
-        console.warn('[Draft API] RAG retrieval unavailable:', ragError.message);
+        console.warn('[Draft API] RAG retrieval unavailable:', ragError?.message || ragError);
       }
     }
 
@@ -74,9 +82,9 @@ export async function POST(req) {
       },
     });
   } catch (error) {
-    console.error('[Draft API]', error);
+    console.error('[Draft API]', error?.message || error, error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to generate the case guidance and document.' },
+      { success: false, error: userFacingError(error) },
       { status: 500 }
     );
   }
