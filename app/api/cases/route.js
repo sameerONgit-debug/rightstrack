@@ -22,7 +22,6 @@ export async function POST(request) {
     const supportedLanguages = new Set(['en', 'hi', 'mr', 'bn', 'ta']);
     const lang = supportedLanguages.has(language) ? language : 'en';
 
-    // Step 1: Generate formal document using Drafts Agent
     const document = await draftsmanAgent.generateDocument(
       analysis.domain,
       {
@@ -44,7 +43,6 @@ export async function POST(request) {
       );
     }
 
-    // Step 2: Add statutory citations to document
     const citedDocument = await draftsmanAgent.addCitationsToDocument(
       document.documentId,
       document.content,
@@ -52,20 +50,18 @@ export async function POST(request) {
       document.sections || []
     );
 
-    // Step 3: Validate document completeness
     const validation = draftsmanAgent.validateDocumentCompleteness(
       { ...document, ...citedDocument },
       analysis.domain
     );
 
-    // Step 4: Generate case ID and save to database
     const caseId = uuidv4();
     const now = new Date().toISOString();
 
     const caseRecord = {
       id: caseId,
       domain: analysis.domain,
-      user_id: '[[USER_ID]]', // Will be set from auth context
+      user_id: '[[USER_ID]]',
       status: validation.valid ? 'draft_ready' : 'draft_incomplete',
       intake_data: analysis,
       user_responses: answers,
@@ -75,17 +71,14 @@ export async function POST(request) {
       updated_at: now,
     };
 
-    // Upsert case record
     const { error: caseError } = await supabase
       .from('cases')
       .upsert([caseRecord], { onConflict: 'id' });
 
     if (caseError) {
       console.warn('Error saving case to database:', caseError);
-      // Don't fail - still return the document
     }
 
-    // Save document record
     const { error: docError } = await supabase
       .from('case_documents')
       .insert([{
@@ -104,14 +97,11 @@ export async function POST(request) {
       console.warn('Error saving document to database:', docError);
     }
 
-    // Step 5: Compile comprehensive response
     const response = {
       caseId,
       documentId: document.documentId,
       timestamp: now,
       language: lang,
-
-      // Document details
       document: {
         title: document.documentTitle,
         type: document.documentType,
@@ -119,22 +109,16 @@ export async function POST(request) {
         version: document.version,
         content: citedDocument.contentWithCitations || document.content,
       },
-
-      // Sections and structure
       sections: (document.sections || []).map(section => ({
         name: section.sectionName,
         preview: section.content.substring(0, 200),
         citations: section.citations || [],
       })),
-
-      // Citations
       citations: {
         count: citedDocument.citationsAdded || 0,
         quality: citedDocument.citationQuality || 'adequate',
         statutoryReferences: document.sections || [],
       },
-
-      // Validation results
       validation: {
         valid: validation.valid,
         readinessScore: validation.readinessScore,
@@ -144,23 +128,17 @@ export async function POST(request) {
           ? ['Review document', 'Fill in placeholder values', 'File with appropriate authority']
           : ['Complete missing sections', 'Provide clarification answers', 'Regenerate document'],
       },
-
-      // Filing guidance
       filingGuidance: {
         authority: '[[APPROPRIATE_AUTHORITY]]',
         estimatedFilingDate: document.estimatedFilingDate,
         requiredAttachments: document.requiredAttachments || [],
         cautions: document.warningsAndCautions || [],
       },
-
-      // Multi-language support
       languageInfo: {
         contentLanguage: lang,
         legalTermsLanguage: 'English',
         supportedLanguages: ['en', 'hi', 'mr', 'bn', 'ta'],
       },
-
-      // Placeholder information
       placeholders: Array.from(new Set(
         (citedDocument.contentWithCitations || document.content || '')
           .match(/\[\[.*?\]\]/g) || []
@@ -185,7 +163,6 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const caseId = searchParams.get('caseId');
     const domain = searchParams.get('domain');

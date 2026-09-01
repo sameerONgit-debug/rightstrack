@@ -1,0 +1,60 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,jsx}',
+    './components/**/*.{js,jsx}',
+    './app/**/*.{js,jsx}',
+    './src/**/*.{js,jsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          500: '#15803d',
+          600: '#166534',
+          700: '#14532d',
+          900: '#052e16',
+        },
+        legal: {
+          navy: '#0f172a',
+          slate: '#334155',
+          gold: '#d97706',
+          amber: '#f59e0b',
+          crimson: '#dc2626',
+        },
+        // RightsTrack design tokens used throughout the existing UI.
+        background: '#EDE6DA',
+        'on-background': '#1B1B18',
+        surface: '#F8F4EC',
+        'surface-variant': '#E5DED1',
+        'surface-container-low': '#F3EEE5',
+        'surface-container-lowest': '#FFFFFF',
+        'surface-container': '#EEE8DD',
+        'surface-container-high': '#E8E1D5',
+        'on-surface': '#1B1B18',
+        'on-surface-variant': '#5F625C',
+        outline: '#77786F',
+        'outline-variant': '#C8C4BA',
+        primary: '#1B4332',
+        'primary-container': '#2D6A4F',
+        'on-primary': '#FFFFFF',
+        secondary: '#8A684A',
+        'secondary-container': '#D9C3A8',
+        'on-secondary': '#FFFFFF',
+        'tertiary-container': '#D8C7A8',
+        'on-tertiary-container': '#332A1B',
+        error: '#BA1A1A',
+        'error-container': '#FFDAD6',
+        'on-error': '#FFFFFF',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['Playfair Display', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+      },
+    },
+  },
+  plugins: [],
+};

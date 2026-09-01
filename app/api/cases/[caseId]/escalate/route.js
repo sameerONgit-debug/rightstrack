@@ -13,7 +13,6 @@ export async function POST(request, { params }) {
     const { caseId } = params;
     const body = await request.json();
     
-    // Validate input
     if (!caseId) {
       return Response.json(
         { error: { code: 'INVALID_INPUT', message: 'Case ID is required.' } },
@@ -21,7 +20,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Step 1: Fetch case details from database
     const { data: caseData, error: caseError } = await supabase
       .from('cases')
       .select('*')
@@ -35,9 +33,8 @@ export async function POST(request, { params }) {
       );
     }
 
-    const { domain, created_at: filingDate, status: caseStatus, user_responses } = caseData;
+    const { domain, created_at: filingDate, status: caseStatus } = caseData;
 
-    // Step 2: Check eligibility for escalation
     const eligibility = watchdogAgent.checkEscalationEligibility(
       domain,
       body.caseStatus || caseStatus,
@@ -59,10 +56,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Step 3: Calculate statutory deadlines
     const deadlines = watchdogAgent.calculateStatutoryDeadlines(domain, filingDate);
-
-    // Step 4: Generate First Appeal petition
     const supportedLanguages = new Set(['en', 'hi', 'mr', 'bn', 'ta']);
     const language = supportedLanguages.has(body.language) ? body.language : 'en';
 
@@ -91,7 +85,6 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Step 5: Save escalation record
     const escalationId = appealPetition.appealId || uuidv4();
     const now = new Date().toISOString();
 
@@ -114,7 +107,6 @@ export async function POST(request, { params }) {
       console.warn('Error saving escalation record:', escalationError);
     }
 
-    // Step 6: Update case status
     const { error: updateError } = await supabase
       .from('cases')
       .update({
@@ -127,22 +119,17 @@ export async function POST(request, { params }) {
       console.warn('Error updating case status:', updateError);
     }
 
-    // Step 7: Compile comprehensive escalation response
     const response = {
       caseId,
       escalationId,
       timestamp: now,
       domain,
       language,
-
-      // Eligibility information
       eligibility: {
         eligible: true,
         reasons: eligibility.reasons,
         daysSinceLastUpdate: eligibility.daysSinceLastUpdate,
       },
-
-      // Statutory deadline information
       deadlines: deadlines.deadlines.map(d => ({
         appealLevel: d.appealLevel,
         appealTitle: d.appealTitle,
@@ -151,8 +138,6 @@ export async function POST(request, { params }) {
         daysRemaining: d.daysRemaining,
         status: d.status,
       })),
-
-      // Appeal petition details
       appeal: {
         title: appealPetition.appealTitle,
         level: appealPetition.appealLevel,
@@ -161,8 +146,6 @@ export async function POST(request, { params }) {
         reliefSought: appealPetition.reliefSought,
         statutoryCitations: appealPetition.statutoryCitations,
       },
-
-      // Document information
       document: {
         type: 'appeal_petition',
         status: 'drafted',
@@ -170,8 +153,6 @@ export async function POST(request, { params }) {
         content: appealPetition.content.substring(0, 500) + '...',
         fullContent: appealPetition.content,
       },
-
-      // Filing instructions
       filingInstructions: appealPetition.filingInstructions || [
         'Download the appeal petition',
         'Fill in any remaining placeholder information',
@@ -179,16 +160,12 @@ export async function POST(request, { params }) {
         'File with the appropriate commission/authority',
         'Keep copy of receipt for future reference',
       ],
-
-      // Required attachments
       requiredAttachments: appealPetition.requiredAttachments || [
         'Copy of original complaint/application',
         'Copy of order against which appeal is filed',
         'Proof of sending original application',
         'Supporting documents/evidence',
       ],
-
-      // Next steps
       nextSteps: [
         'Review the appeal petition carefully',
         'Collect required supporting documents',
@@ -196,8 +173,6 @@ export async function POST(request, { params }) {
         'Keep proof of filing for records',
         'Follow up on appeal status as per guidelines',
       ],
-
-      // Warning and important information
       warningsAndCautions: [
         `Appeal must be filed within ${deadlines.deadlines[0]?.daysRemaining || 30} days`,
         'Original documents will be needed during appeal hearing',
@@ -233,11 +208,10 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Fetch monitoring status for the case
     const monitoring = await watchdogAgent.monitorCaseAndAlert(
       caseId,
-      null, // domain will be fetched from DB
-      {} // minimal case data
+      null,
+      {}
     );
 
     if (monitoring.status === 'error') {
