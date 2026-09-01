@@ -1,61 +1,64 @@
 import { NextResponse } from 'next/server';
+import { createRequire } from 'module';
 
-/**
- * POST /api/analyze
- * Classifies citizen narrative into RTI or Consumer domain, extracts entities, and generates clarifying questions.
- */
+const require = createRequire(import.meta.url);
+const { analyze } = require('../../../lib/ai/analyze');
+
+function userFacingError(error) {
+  const message = typeof error === 'string' ? error : error?.message || '';
+  if (/AI (classification|fact extraction|question generation) unavailable|provider failed|api key|fetch failed/i.test(message)) {
+    return 'AI analysis is temporarily unavailable. Please try again in a moment.';
+  }
+  return message || 'Unable to analyze the problem.';
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
     const { narrative } = body;
 
-    if (!narrative || narrative.trim().length === 0) {
+    if (!narrative || !narrative.trim()) {
       return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: { code: 'INVALID_INPUT', message: 'Problem narrative is required.' },
-        },
+        { success: false, data: null, error: 'Problem narrative is required.' },
         { status: 400 }
       );
     }
 
-    // Mock analysis pipeline stub conforming to docs/mvp-spec.md contract
-    const isConsumer = /refund|seller|order|warranty|delivery|bought|product|amazon|flipkart/i.test(narrative);
+    const originalNarrative = narrative.trim();
+    const analysis = await analyze(originalNarrative);
+    const domain = analysis.domain === 'Consumer'
+      ? 'CONSUMER'
+      : analysis.domain === 'RTI'
+        ? 'RTI'
+        : 'OTHER';
 
-    const result = {
-      domain: isConsumer ? 'CONSUMER' : 'RTI',
-      confidence: 0.94,
-      rationale: isConsumer
-        ? 'Problem describes a transaction for goods or services with deficiency/unfair trade practice under Consumer Protection Act 2019.'
-        : 'Problem relates to government public works, municipal operations, or official records under Right to Information Act 2005.',
-      entities: {
-        applicant_name: null,
-        target_entity: isConsumer ? 'Online Merchant / Service Provider' : 'Public Authority / Municipal Office',
-        relief_sought: isConsumer ? 'Replacement or full refund with compensation' : 'Certified copies of official records',
+    return NextResponse.json({
+      success: true,
+      data: {
+        narrative: originalNarrative,
+        domain,
+        confidence: analysis.confidence,
+        rationale: analysis.rationale,
+        suggested_category: analysis.suggested_category || '',
+        is_valid_problem: analysis.is_valid_problem !== false,
+        ai_generated: analysis.ai_generated === true,
+        ai_pipeline: analysis.ai_pipeline === true,
+        entities: analysis.extracted_fields || {},
+        extracted_fields: analysis.extracted_fields || {},
+        clarifications: (analysis.clarifying_questions || []).map((question, index) => ({
+          id: question.field_key || `clarification_${index + 1}`,
+          question: question.question_text,
+          required: question.required !== false,
+          input_type: question.input_type || 'text',
+        })),
+        clarifying_questions: analysis.clarifying_questions || [],
       },
-      clarifications: [
-        {
-          id: 'authority_name',
-          question: isConsumer ? 'What is the company name or merchant name?' : 'Which specific public department or municipal authority is responsible?',
-          required: true,
-        },
-        {
-          id: 'reference_id',
-          question: isConsumer ? 'What is your invoice or order number?' : 'Do you have an application or tender reference number?',
-          required: false,
-        },
-      ],
-    };
-
-    return NextResponse.json({ success: true, data: result, error: null });
+      error: null,
+    });
   } catch (error) {
+    console.error('[Analyze API]', error?.message || error, error);
     return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: { code: 'ANALYSIS_ERROR', message: error.message },
-      },
+      { success: false, data: null, error: userFacingError(error) },
       { status: 500 }
     );
   }
